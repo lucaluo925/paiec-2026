@@ -1,0 +1,12 @@
+# No competition data in this repository, ever.
+measurement-db/
+*.parquet
+*.npz
+payload/
+dist/
+*.zip
+
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
