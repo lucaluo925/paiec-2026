@@ -1,10 +1,56 @@
 # Online Hierarchical IRT with Assumed-Density Filtering for Predictive AI Evaluation
 
-*Technical report — Predictive AI Evaluation Competition, NeurIPS 2026. DRAFT.*
+**Haoyuan Luo** — University of California, Davis — `zixluo@ucdavis.edu`
 
-> **Status.** Every number below is a local hold-out estimate on the public
-> measurement-db, produced by the scripts in this repository. None of them is a
-> leaderboard result; the leaderboard was never consulted for model selection.
+*Technical report — Predictive AI Evaluation Competition, NeurIPS 2026.*
+Codabench submission **955485** (`paiec_irt.zip`, sha256 `98555787…2cfe0f`).
+Code: `https://github.com/lucaluo925/paiec-2026`
+
+## Abstract
+
+A decision maker choosing between AI systems can rarely afford to evaluate them
+on every item. This competition asks how well a system's per-item success can be
+predicted on a benchmark never seen during development, given a budget of 0 to
+31 labels for the subject–benchmark pair under test. We model the response as a
+hierarchical item-response model — logit P(correct) = a·θ_s + v_s − β − d_i −
+Σ w_f — with subject ability θ_s calibrated offline on the public
+measurement-db and predicted from provider, release date, parameter count and
+name tokens for subjects absent from calibration. At evaluation time we hold one
+joint Gaussian posterior per anonymous benchmark and absorb each acquired label
+with an assumed-density-filtering step (probit approximation, closed-form
+rank-one update). Labels of *other* subjects on the same benchmark inform the
+shared latents, which is where most of the gain at small budgets comes from.
+
+Under leave-one-benchmark-out validation on four public benchmarks (147
+subject–benchmark pairs, 19,621 evaluation targets), the fully out-of-fold model
+reaches Brier ALC **0.16875** against **0.23110** for the organizers' empirical-mean
+baseline and 0.25000 for a constant 0.5; cross-fitting the shrinkage weights
+under the same protocol gives an honest **0.16515**. The advantage does not
+depend on having met the model before: on the 27 pairs whose identity
+calibration never saw, ALC is 0.18424 against 0.24960.
+
+Two negative results are reported as fully as the positive one. First, the
+competition's formative feedback is far noisier than it appears: five
+byte-identical submissions of the same artefact scored 0.20624, 0.20098,
+0.18124, 0.18685 and 0.19461 — a standard deviation of **0.0102** on ALC and
+0.014–0.023 per budget, because each evaluation redraws only eight or nine
+subject–benchmark pairs. Of everything that feedback could be asked, only three
+statements survive it, and we state which. Second, three pre-registered
+mechanism-level fixes for the zero-label prior — the one budget where the live
+result clearly exceeds our local estimate — were all falsified on
+leave-one-benchmark-out, and the shipped configuration was left unchanged. We
+also record a sequencing error of our own: the noise calibration was run after,
+not before, the first live score had been used to draw conclusions.
+
+**Keywords:** predictive evaluation; item response theory; assumed density
+filtering; online Bayesian updating; calibration; label-efficient evaluation;
+Brier score.
+
+> **Scope of the numbers.** Every figure outside §5b is a local hold-out
+> estimate on the public measurement-db, produced by the scripts in this
+> repository. §5b reports the live Codabench scores and treats them as a
+> repeated measurement of noise, not as a selection signal; the leaderboard was
+> never consulted for model selection.
 
 ## 1. Task and scoring
 
@@ -244,16 +290,16 @@ in which subject–benchmark pairs were drawn. We report them as a repeated
 measurement, because a single live score turns out to be far noisier than we
 expected, and the noise is the main thing we learned from them.
 
-| | 955485 | 955728 | 955767 | 957572 | 957580 | mean | **SD** | local | gap | |
-|---|---|---|---|---|---|---|---|---|---|---|
-| **Brier ALC** | 0.20624 | 0.20098 | 0.18124 | 0.18685 | 0.19461 | 0.19398 | **0.0102** | 0.17540 | +0.0186 | 1.8 σ |
-| B₀ | 0.30845 | 0.27314 | 0.25431 | 0.30584 | 0.28153 | 0.28465 | 0.0228 | 0.21634 | +0.0683 | **3.0 σ** |
-| B₁ | 0.25933 | 0.22918 | 0.22100 | 0.24012 | 0.21610 | 0.23315 | 0.0172 | 0.20171 | +0.0314 | 1.8 σ |
-| B₃ | 0.19287 | 0.20820 | 0.17058 | 0.20076 | 0.19303 | 0.19309 | 0.0141 | 0.18436 | +0.0087 | 0.6 σ |
-| B₇ | 0.17314 | 0.17904 | 0.15904 | 0.14204 | 0.17071 | 0.16479 | 0.0147 | 0.16570 | −0.0009 | −0.1 σ |
-| B₁₅ | 0.16742 | 0.17175 | 0.15398 | 0.13154 | 0.16892 | 0.15872 | 0.0167 | 0.15042 | +0.0083 | 0.5 σ |
-| B₃₁ | 0.16840 | 0.16031 | 0.14893 | 0.13378 | 0.16701 | 0.15569 | 0.0145 | 0.13330 | +0.0224 | 1.6 σ |
-| ECE | 0.16324 | 0.13985 | 0.13641 | 0.19109 | 0.14631 | 0.15538 | 0.0225 | — | — | |
+| | 955485 | 955728 | 955767 | 957572 | 957580 | mean | **SD** | local | gap vs local |
+|---|---|---|---|---|---|---|---|---|---|
+| **Brier ALC** | 0.20624 | 0.20098 | 0.18124 | 0.18685 | 0.19461 | 0.19398 | **0.0102** | 0.17540 | +0.0186 (1.8 σ) |
+| B₀ | 0.30845 | 0.27314 | 0.25431 | 0.30584 | 0.28153 | 0.28465 | 0.0228 | 0.21634 | **+0.0683 (3.0 σ)** |
+| B₁ | 0.25933 | 0.22918 | 0.22100 | 0.24012 | 0.21610 | 0.23315 | 0.0172 | 0.20171 | +0.0314 (1.8 σ) |
+| B₃ | 0.19287 | 0.20820 | 0.17058 | 0.20076 | 0.19303 | 0.19309 | 0.0141 | 0.18436 | +0.0087 (0.6 σ) |
+| B₇ | 0.17314 | 0.17904 | 0.15904 | 0.14204 | 0.17071 | 0.16479 | 0.0147 | 0.16570 | −0.0009 (−0.1 σ) |
+| B₁₅ | 0.16742 | 0.17175 | 0.15398 | 0.13154 | 0.16892 | 0.15872 | 0.0167 | 0.15042 | +0.0083 (0.5 σ) |
+| B₃₁ | 0.16840 | 0.16031 | 0.14893 | 0.13378 | 0.16701 | 0.15569 | 0.0145 | 0.13330 | +0.0224 (1.6 σ) |
+| ECE | 0.16324 | 0.13985 | 0.13641 | 0.19109 | 0.14631 | 0.15538 | 0.0225 | — | — |
 
 Each run drew 8 or 9 subject–benchmark pairs (8, 8, 8, 9, 9), and in every one
 the unweighted mean of the per-pair ALCs reproduces the reported total to six

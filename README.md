@@ -72,16 +72,43 @@ the full table.
 
 ## Reproduce
 
+Two prerequisites, in this order:
+
 ```
-python -m pytest tests/                       # harness self-tests
-python scripts/make_synthetic_db.py           # synthetic replica, no download
-python -m eval.run_cv --data data/synthetic   # the protocol on the replica
+pip install -r requirements-lock.txt
+export PAIEC_BASELINE_DIR=/path/to/aims-foundations/paiec_baseline
 ```
 
-Everything above runs with no data download. To rerun the scored results you
-need `aims-foundations/measurement-db` (gated); `scripts/download_measurement_db.py`
-fetches it and `report/report.md` §7 lists the exact command sequence. No data is
-included in this repository.
+`PAIEC_BASELINE_DIR` is the organizers' public baseline repository. It is not
+optional: `eval/baselines.py` loads `empirical_mean/model.py` and
+`check_submission_zip.py` from it, and without the variable three of the 24
+tests fail with `ModuleNotFoundError` and `run_cv` aborts on the
+`empirical_mean` row. (The default search path is
+`<this repo's parent>/aims-foundations/paiec_baseline`, so the variable is
+unnecessary only if you happen to have it there.)
+
+Then, with no data download at all:
+
+```
+python -m pytest tests/                                     # 24 passed, ~14 s
+python scripts/make_synthetic_db.py --out data/synthetic    # 40 benchmarks, ~4 s
+python -m eval.run_cv --data data/synthetic \
+    --tuned results/tuned_hyper_full.json \
+    --max-subjects 8 --max-eval 60 --max-stream 120         # ~8 s
+```
+
+Those three were run as written before publishing. The last one prints a
+five-fold table; on the synthetic replica it gives ALC 0.181 for `irt` against
+0.230 for `empirical_mean` and 0.250 for the constant — the same ordering as
+the real data, on data that contains none of it.
+
+**`--tuned` is not cosmetic.** Omit it and `run_cv` warns that shrinkage is off
+and the folds therefore do not measure the shipped configuration. An earlier
+version of this repository had that defect silently; see §7 of the report.
+
+To rerun the scored results you need `aims-foundations/measurement-db` (gated);
+`scripts/download_measurement_db.py` fetches it and `report/report.md` §7 lists
+the exact command sequence. No data is included in this repository.
 
 ## Things worth knowing before you read the code
 
