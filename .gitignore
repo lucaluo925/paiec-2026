@@ -1,12 +1,16 @@
-# No competition data in this repository, ever.
-measurement-db/
-*.parquet
-*.npz
-payload/
-dist/
-*.zip
-
+# Local environment and gated data — never published
+.venv/
+data/
+.external/
 __pycache__/
 *.pyc
-.DS_Store
-.venv/
+
+# Build output; the shipped zip is identified by sha256 in README.md instead
+dist/
+
+# Regenerable from scripts/make_synthetic_db.py
+results/synthetic_*
+
+# Internal working notes, not part of the entry
+HANDOFF.md
+docs/

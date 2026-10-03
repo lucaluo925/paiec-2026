@@ -1,0 +1,5 @@
+benchmark,domain,subjects,items,responses,density,base_rate,item_features_nonempty,interactors_nonempty,median_content_chars
+multi_swebench,"software_engineering,agents_and_tool_use",82,2126,57808,0.3315971823876282,0.14835316911154164,1.0,0.0,1147.0
+researchcodebench,"software_engineering,ml_engineering",31,212,6572,1.0,0.35225197808886183,1.0,0.0,96287.5
+swe_rebench,"software_engineering,agents_and_tool_use",1,6306,6306,1.0,0.4752616555661275,0.0,0.0,857.0
+real_webagents,agents_and_tool_use,33,233,3759,0.4888802184939524,0.37536578877361,1.0,0.0,92.0

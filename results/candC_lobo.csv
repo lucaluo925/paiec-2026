@@ -1,0 +1,5 @@
+variant,ALC,B0,B1,B3,B7,B15,B31,ALC_seen,ALC_unseen,ALC_micro,n_pairs,n_pairs_unseen,n_targets,n_targets_unseen,acquisition,labeled_scope,split_mode
+irt_shrink_const,0.196760,0.214480,0.209938,0.198091,0.193543,0.184529,0.180918,0.194204,0.207621,0.194434,105,20,5959,1148,random(default),global,benchmark
+irt_shrink_noop,0.196760,0.214480,0.209938,0.198091,0.193543,0.184529,0.180918,0.194204,0.207621,0.194434,105,20,5959,1148,random(default),global,benchmark
+candC_k1,0.196962,0.214480,0.210947,0.198091,0.193555,0.184521,0.180914,0.194464,0.207578,0.194653,105,20,5959,1148,random(default),global,benchmark
+candC_k2,0.196947,0.214480,0.210870,0.198091,0.193555,0.184521,0.180914,0.194455,0.207536,0.194636,105,20,5959,1148,random(default),global,benchmark

@@ -1,0 +1,28 @@
+loaded 4 eligible benchmarks in 7s; folds [1, 1, 1, 1, 0]; 12 held-out identities
+fold 0: fit 0s  hyper={"a_mean": 1.502, "a_var": 0.0, "beta_mean": 2.022, "beta_var": 0.064, "tau2": 0.118, "delta_var": 5.146, "w_var": 0.5}
+  const0.5                     ALC 0.25000  B0=0.2500 B1=0.2500 B3=0.2500 B7=0.2500 B15=0.2500 B31=0.2500  (0s, 40 pairs, 2397 targets)
+  empirical_mean               ALC 0.20584  B0=0.2500 B1=0.3052 B3=0.2051 B7=0.1636 B15=0.1545 B31=0.1517  (0s, 40 pairs, 2397 targets)
+  irt                          ALC 0.15915  B0=0.1886 B1=0.1770 B3=0.1655 B7=0.1524 B15=0.1423 B31=0.1285  (2s, 40 pairs, 2397 targets)
+  irt_pairscope                ALC 0.16999  B0=0.1886 B1=0.1826 B3=0.1755 B7=0.1646 B15=0.1564 B31=0.1532  (1s, 40 pairs, 2397 targets)
+fold 1: fit 1s  hyper={"a_mean": 2.999, "a_var": 1.462, "beta_mean": -0.657, "beta_var": 4.166, "tau2": 4.539, "delta_var": 14.226, "w_var": 0.5}
+  const0.5                     ALC 0.25000  B0=0.2500 B1=0.2500 B3=0.2500 B7=0.2500 B15=0.2500 B31=0.2500  (1s, 31 pairs, 1860 targets)
+  empirical_mean               ALC 0.27971  B0=0.2500 B1=0.4215 B3=0.2885 B7=0.2390 B15=0.2182 B31=0.2126  (1s, 31 pairs, 1860 targets)
+  irt                          ALC 0.19664  B0=0.2722 B1=0.2294 B3=0.2092 B7=0.1837 B15=0.1569 B31=0.1359  (2s, 31 pairs, 1860 targets)
+  irt_pairscope                ALC 0.23791  B0=0.2722 B1=0.2623 B3=0.2423 B7=0.2293 B15=0.2143 B31=0.2103  (1s, 31 pairs, 1860 targets)
+fold 2: fit 0s  hyper={"a_mean": 4.018, "a_var": 8.467, "beta_mean": 1.238, "beta_var": 1.606, "tau2": 0.178, "delta_var": 6.848, "w_var": 0.5}
+  const0.5                     ALC 0.25000  B0=0.2500 B1=0.2500 B3=0.2500 B7=0.2500 B15=0.2500 B31=0.2500  (0s, 1 pairs, 60 targets)
+  empirical_mean               ALC 0.39547  B0=0.2500 B1=0.6333 B3=0.6333 B7=0.2361 B15=0.2333 B31=0.2326  (0s, 1 pairs, 60 targets)
+  irt                          ALC 0.33092  B0=0.2765 B1=0.4194 B3=0.5163 B7=0.2323 B15=0.2322 B31=0.2322  (0s, 1 pairs, 60 targets)
+  irt_pairscope                ALC 0.33092  B0=0.2765 B1=0.4194 B3=0.5163 B7=0.2323 B15=0.2322 B31=0.2322  (0s, 1 pairs, 60 targets)
+fold 3: fit 0s  hyper={"a_mean": 2.139, "a_var": 0.199, "beta_mean": 1.861, "beta_var": 6.857, "tau2": 0.015, "delta_var": 5.595, "w_var": 0.5}
+  const0.5                     ALC 0.25000  B0=0.2500 B1=0.2500 B3=0.2500 B7=0.2500 B15=0.2500 B31=0.2500  (0s, 33 pairs, 1647 targets)
+  empirical_mean               ALC 0.25238  B0=0.2500 B1=0.3892 B3=0.2337 B7=0.2138 B15=0.2015 B31=0.1973  (0s, 33 pairs, 1647 targets)
+  irt                          ALC 0.18600  B0=0.2608 B1=0.2129 B3=0.1907 B7=0.1726 B15=0.1556 B31=0.1354  (0s, 33 pairs, 1647 targets)
+  irt_pairscope                ALC 0.21738  B0=0.2608 B1=0.2362 B3=0.2149 B7=0.2084 B15=0.1998 B31=0.1943  (0s, 33 pairs, 1647 targets)
+
+variant                       ALC      B0       B1       B3       B7       B15      B31    
+const0.5                      0.25000  0.25000  0.25000  0.25000  0.25000  0.25000  0.25000
+empirical_mean                0.24408  0.25000  0.36908  0.24279  0.20233  0.18880  0.18479
+irt                           0.18029  0.23681  0.20605  0.18967  0.16877  0.15165  0.13383
+irt_pairscope                 0.20647  0.23681  0.22523  0.21087  0.19810  0.18789  0.18373
+total 20s

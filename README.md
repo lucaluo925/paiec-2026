@@ -1,98 +1,117 @@
-# PAIEC 2026 — submission, validation harness, and the experiments behind it
+# PAIEC 2026 — online hierarchical IRT
 
-Entry for the [Predictive AI Evaluation Competition](https://aimslab.stanford.edu/competition)
-(Stanford AIMS Lab). Predict the probability that an AI system answers an item
-correctly, on **benchmarks never seen during development**, with a label budget of
-0–31 per subject–benchmark pair.
+Entry for the Predictive AI Evaluation Competition (Stanford AIMS Lab): predict
+the probability that an AI system answers an item correctly, on benchmarks never
+seen during development, with a label budget of 0–31 per subject–benchmark pair.
+
+This is the code behind **Codabench submission 955485** (`paiec_irt.zip`,
+sha256 `98555787478009fc9e53b05a7a532912db37b716e24ed9abac121bac33c2fe0f`), the
+entry currently on the leaderboard.
 
 `report/report.md` is the technical report. This README is how to rerun it.
 
+## The method in one paragraph
+
+For a benchmark, logit P(correct) = a·θ_s + v_s − β − d_i − Σ w_f. θ_s is the
+subject's general ability, calibrated offline on the public measurement-db, or
+predicted from provider, release date, parameter count and settings for a model
+not seen in calibration. The benchmark discrimination and difficulty (a, β), the
+subject-by-benchmark deviation v_s, item difficulty d_i and the feature effects
+w_f are latent, with priors fitted on the training benchmarks. At evaluation
+time one joint Gaussian posterior is held per anonymous `benchmark_id`, and each
+acquired label is absorbed by an assumed-density-filtering step — a probit
+approximation with a closed-form rank-one update — in the order supplied. Labels
+of *other* subjects on the same benchmark inform the shared latents, which is
+where most of the benefit at small budgets comes from. The prediction is
+E[sigmoid(logit)] under the posterior, mixed with the training base rate by a
+weight fitted per budget on local validation.
+
 ## What is here
 
-| | |
-|---|---|
-| `model.py` | the submission: a two-constant shrunk posterior. Standard library only. |
-| `harness/` | `alc.py` (the official Brier ALC and budget protocol), `harness.py` (leave-one-**benchmark**-out), `load.py` (measurement-db → harness shape) |
-| `experiments/` | the measurements the report rests on |
-| `report/` | the report, the evidence ledger, and the script that checks one against the other |
+```
+submission/    the entry: model.py (entry point), pirt_online.py (engine),
+               params.json (offline-fitted parameters), labeling.py (acquisition,
+               NOT shipped — see §4.5 of the report)
+train/         fit_offline.py (offline calibration), train_final.py
+eval/          run_cv.py (leave-one-benchmark-out), splits.py, tune.py, ab.py,
+               baselines.py, local_scorer.py (the official Brier ALC protocol)
+tools/         build_submission_zip.py, make_figures.py
+scripts/       download_measurement_db.py, make_synthetic_db.py, survey_data.py
+tests/         test_pipeline.py
+results/       every logged measurement the report cites
+figures/       learning curves and calibration
+report/        the technical report
+```
+
+## Results
+
+Leave-one-benchmark-out, pair-macro Brier, 147 pairs / 19,621 evaluation
+targets, fully out-of-fold **before** any tuning:
+
+| Predictor | ALC | B₀ | B₁ | B₃ | B₇ | B₁₅ | B₃₁ |
+|---|---|---|---|---|---|---|---|
+| Constant 0.5 | 0.25000 | 0.2500 | 0.2500 | 0.2500 | 0.2500 | 0.2500 | 0.2500 |
+| Empirical mean (organizers) | 0.23110 | 0.2500 | 0.3449 | 0.2310 | 0.1902 | 0.1774 | 0.1740 |
+| **Online IRT** | **0.16875** | 0.2211 | 0.1932 | 0.1771 | 0.1593 | 0.1412 | 0.1248 |
+| Online IRT, own-pair labels only | 0.19450 | 0.2211 | 0.2117 | 0.1985 | 0.1875 | 0.1777 | 0.1731 |
+
+Cross-fitted (honest) estimate with the shrinkage weights fitted under the same
+protocol: **ALC 0.16515**. Per fold: 0.1509, 0.1943, 0.2728, 0.1860 — the worst
+is `swe_rebench`, which contributes exactly one pair.
+
+**Read that against the live noise before believing any of it.** The same
+artefact was submitted five times unchanged and scored 0.20624, 0.20098,
+0.18124, 0.18685, 0.19461 — mean 0.19398, **SD 0.0102**. Each formative
+evaluation draws only eight or nine subject–benchmark pairs afresh, so a single
+live score carries about that much noise on ALC and 0.014–0.023 per budget. Of
+everything the live feedback could be asked, it answers three things: the gap to
+the leading entry is real (7.6 SD), the zero-label shortfall against our own
+local estimate is real (3.0 SD), and nothing else is resolved — including
+whether this entry is behind the organizers' own (1.4 SD). §5b of the report has
+the full table.
 
 ## Reproduce
 
-```bash
-make            # everything below
-make check      # harness self-tests
-make protocol   # why benchmark holdout; what 3 folds can detect
-make derivation # K from the measured variance, and its regret profile
-make report-check
+```
+python -m pytest tests/                       # harness self-tests
+python scripts/make_synthetic_db.py           # synthetic replica, no download
+python -m eval.run_cv --data data/synthetic   # the protocol on the replica
 ```
 
-No data download is needed for any of it. The protocol experiments run on a
-synthetic replica, and the K derivation runs on the variance components recorded
-in `report/evidence.md`.
+Everything above runs with no data download. To rerun the scored results you
+need `aims-foundations/measurement-db` (gated); `scripts/download_measurement_db.py`
+fetches it and `report/report.md` §7 lists the exact command sequence. No data is
+included in this repository.
 
-To rerun the scored results you need `aims-foundations/measurement-db` (gated).
-Sixteen files are sufficient — `{subjects,items,benchmarks,response}.parquet` for
-`multi_swebench`, `real_webagents`, `researchcodebench`, `swe_rebench`, 58 MB in
-total. `traces.parquet` is 405 MB of the 463 MB in those sources and is not used.
-`load.py` documents the verified column names; **no data is included in this
-repository**.
+## Things worth knowing before you read the code
 
-## The short version of the result
-
-Three candidate sources of cross-benchmark signal were measured, and each failed
-for a different reason:
-
-- **Benchmark difficulty is not predictable.** Holding out `multi_swebench`, the
-  best prior the rest of the data supports is 0.36; its true base rate is 0.148.
-- **Subject ability transfers but cannot be used.** Relative model strength
-  correlates across benchmarks (+0.56 to +0.85, all three pairs same sign), yet
-  applying it as a prior shift makes the score worse: the unknown benchmark-level
-  offset is as large as the signal, a ratio of 1.70 on the fold where it hurts.
-- **Item difficulty is the largest component and has no transferable predictor.**
-  28–40% of response variance after removing binomial noise. But `item_features`
-  vocabularies are disjoint across benchmarks, generic content features reverse
-  sign, and a ridge model on the official embeddings that predicts difficulty
-  *within* a benchmark at r = 0.23–0.49 transfers at r ≈ 0.
-
-So the acquired labels are very nearly the only usable information, and the
-submission is a calibrated posterior over them. Leave-one-benchmark-out:
-
-| | ALC |
-|---|---:|
-| constant 0.5 | 0.2500 |
-| official `empirical_mean` baseline | 0.2429 |
-| **this submission** | **0.2015** |
-
-A protocol result that may matter more than the score: **holding out subjects
-instead of benchmarks inflates the apparent gain of a per-item difficulty model
-twentyfold** (+0.0266 against +0.0013). Results in this competition validated by
-a subject-level split should be treated as unmeasured.
-
-## Two working rules, in case they are useful elsewhere
-
-**Every number in the report traces to a logged measurement.** `report/evidence.md`
-is the only source, and `report/crosscheck.py` enforces it mechanically — it
-accepts percent/fraction and rounding re-renderings of a logged value and nothing
-else. Writing it caught seventeen figures that had been measured but never
-logged, and one bug in the checker itself: an early version expanded *both* sides,
-so a report figure could match itself and the check gave false assurance.
-
-**A change is accepted only when no fold shows a real loss, and never on the mean
-of the folds.** With three benchmarks you do not receive the mean — you receive
-one draw. A method averaging +0.0092 with per-fold gains of +0.0158 / +0.0188 /
-−0.0069 loses outright one time in three. A negative fold is exempted only with
-both a magnitude far below the positive folds and a stated mechanism; that
-exemption was used once and refused twice, and `experiments/heterogeneity.py` is
-where the rule comes from.
+* **`submission/pirt_online.py` is not byte-identical to the shipped zip.** It
+  carries an extra, inert branch (`shrink_target == "bench"`) added while testing
+  candidate fixes that were then falsified. The shipped `params.json` has no
+  `target` key, so the default `"const"` path runs and behaviour is unchanged —
+  verified, not assumed: 300 randomized (subject, item, label-sequence) triples
+  with 0–31 labels give bit-identical predictions from both versions. The other
+  four files in the zip are byte-identical to `submission/`.
+* **Three pre-registered fixes for the zero-label prior all failed.** Shrinking
+  towards 0.5; estimating the target benchmark's success rate online with a 0.5
+  cold start; the same with the fitted constant as cold start. Gates were fixed
+  before running, and each made B₀ and/or B₁ worse on leave-one-benchmark-out.
+  The shipped configuration is unchanged. The code for them is in the repository
+  because a falsified candidate is a result.
+* **The noise calibration was done in the wrong order.** The first live score was
+  used to diagnose a deficit, propose those three candidates and revise protocol
+  conclusions — all before measuring that a single live score has SD 0.010. With
+  hindsight that first "finding" was under 3 SD. It is documented in the report
+  rather than quietly repaired.
+* **`walk_forward`-style time splitting is not used, and subject-level splitting
+  is wrong here.** The report (§3) records why the split must be by benchmark.
 
 ## Disclosure
 
-An LLM-based coding assistant (Claude) was used throughout: the measurement code,
-the harness, `model.py`, and drafting the report. Every number was produced by the
-scripts here. Two errors made during development are documented in the report
-rather than quietly fixed — a misread of the embedding-transfer sign (§4.2) and a
-robustness test that passed only because the malformed inputs it happened to pick
-fell in already-guarded branches (§8 item 6 and the submission notes).
+An LLM-based coding assistant (Claude) was used throughout: the calibration and
+evaluation code, the engine, and drafting the report. Every number in the report
+and in this README was produced by the scripts in this repository and is logged
+under `results/`.
 
 ## License
 

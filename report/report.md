@@ -1,293 +1,440 @@
-# What Transfers Across Benchmarks? A Negative Result and a Calibrated Baseline for Predicting AI Evaluation Outcomes
-
-**PAIEC 2026 technical report — DRAFT**
-
----
-
-## Summary
-
-The competition asks for the probability that a given AI system answers a given item correctly, on **benchmarks that were never seen during development**, with a label budget of 0 to 31 per subject–benchmark pair.
-
-We set out to build a latent-trait model. We did not submit one. Three candidate sources of cross-benchmark signal were each measured and each failed, for three different and identifiable reasons:
-
-1. **Benchmark difficulty is not predictable.** Holding out `multi_swebench`, the best prior the remaining data supports is 0.36; its true base rate is 0.148.
-2. **Subject ability transfers but cannot be used.** Relative model strength correlates across benchmarks (Pearson +0.56 to +0.85, all three pairs same sign). Applying it as a prior shift makes the score *worse*, because the unknown benchmark-level offset is as large as the subject signal itself — a ratio of 1.70 on the fold where it hurts.
-3. **Item difficulty is the largest variance component and has no transferable predictor.** It accounts for 28–40% of response variance after removing binomial noise — more than subject identity does. But `item_features` vocabularies are disjoint across benchmarks; generic content features reverse sign between benchmarks; and a ridge model on the official embeddings, which predicts difficulty *within* a benchmark at r = 0.23–0.49, transfers at r ≈ 0.
-
-The consequence is that for an unseen benchmark the acquired labels are very nearly the only usable information. We therefore submit a two-parameter posterior: a prior equal to the mean of per-benchmark base rates, updated by the acquired labels with a shrinkage constant **derived from the measured variance decomposition rather than tuned**. It scores **ALC 0.2015** under leave-one-benchmark-out validation, against 0.2429 for the official `empirical_mean` baseline and 0.2500 for a constant 0.5.
-
-We also report a validation-protocol result we believe matters more than our score: **holding out subjects instead of benchmarks inflates the apparent gain of a per-item difficulty model by a factor of twenty** (+0.0266 vs +0.0013). Any result in this competition validated by a subject-level split should be treated as unmeasured.
-
----
-
-## 1. Data
-
-### 1.1 Eligibility
-
-`tools/prepare_data.py` restricts the competition to tables with `response_type == "binary"` and `granularity == "item"`. Four of the six public sources qualify. `matharena` (`mixed`) and `mmdocrag` (`fraction`) do not, and together they are **76% of all 571,921 responses**.
-
-| source | subjects | items | cells | base rate |
-|---|---:|---:|---:|---:|
-| multi_swebench | 82 | 2,126 | 57,808 | 0.148 |
-| real_webagents | 33 | 233 | 3,759 | 0.372 |
-| researchcodebench | 31 | 212 | 6,572 | 0.353 |
-| swe_rebench | **1** | 6,306 | 6,306 | 0.478 |
-
-`swe_rebench` has a single subject and therefore carries no information about how performance varies across systems. **Three benchmarks are available for cross-subject learning.** This is the binding constraint on the whole problem: any claim of the form "method A generalises to a new benchmark better than method B" rests on three observations.
-
-### 1.2 Repeated trials
-
-`response.parquet` carries a `trial` column; the same (subject, item) cell is measured more than once. Repetition rates differ sharply: `swe_rebench` 90.6%, `real_webagents` 15.5%, `researchcodebench` 3.1%, `multi_swebench` 0.3%.
-
-The competition scores **one realised outcome**, so we sample a single trial per cell rather than averaging. Averaging would reduce target variance and understate Brier, producing a local score that cannot be compared with the official one.
-
-### 1.3 Download footprint
-
-The gated `measurement-db` repository holds 2,181 files. The four eligible sources' `{subjects, items, benchmarks, response}.parquet` — 16 files, **58 MB** — are sufficient. `traces.parquet` accounts for 405 MB of the 463 MB in those sources and is not needed for the prediction task.
-
----
-
-## 2. Validation protocol
-
-### 2.1 Hold out benchmarks, not subjects
-
-The test benchmarks are private. Their items were never in training. A validation split that holds out *subjects* leaves the items in training, so a model that memorises per-item difficulty meets the same items again at test time.
-
-We measured the size of that error. A per-item empirical difficulty model — the most natural thing to build — was evaluated both ways:
-
-| protocol | shrunk baseline | memoriser | apparent gain |
-|---|---:|---:|---:|
-| hold out **subjects** | 0.2375 | 0.2109 | **+0.0266** |
-| hold out **benchmarks** | 0.2399 | 0.2385 | **+0.0013** |
-
-**95% of the apparent gain is an artefact of the split.** Under benchmark holdout one of the three folds is negative.
-
-### 2.2 The decision rule: all folds, not the mean
-
-With three benchmarks, leave-one-out gives three folds. We accept a change only when **no fold shows a real loss**, and we do not use the mean.
-
-This is not conservatism for its own sake. On a synthetic replica of the problem, with common random numbers across compared methods, a *uniform* improvement of +0.006 ALC is detected in 8 of 8 worlds — sampling noise is not the difficulty. But a method that helps two benchmarks and hurts one, with a true mean effect of **+0.0092**, produces per-fold gains of +0.0158 / +0.0188 / −0.0069. **You do not receive the mean. You receive one draw — the private test benchmark — and there is a one-in-three chance it is the one where the method loses.**
-
-A negative fold is exempted only when it is not a real loss, which requires both a magnitude far below the positive folds *and* a stated mechanism. We applied this exemption once (§4.1) and refused it twice (§4.2, §4.4).
-
-### 2.3 Common random numbers
-
-Every paired comparison reuses the same label-acquisition stream across methods. In earlier work on a different competition we voided a significant result that turned out to be seed noise; here the per-fold standard deviation across 8 seeds is 0.0008–0.0011, small enough that a deterministic difference is distinguishable from a stochastic one.
-
----
-
-## 3. The prior
-
-### 3.1 Benchmark base rates are not predictable
-
-The most direct evidence for the whole paper. Under leave-one-benchmark-out, the prior available from the remaining benchmarks versus the truth:
-
-| held out | pooled-cell prior | equal-benchmark prior | **true base rate** |
-|---|---:|---:|---:|
-| multi_swebench | 0.360 | 0.362 | **0.148** |
-| real_webagents | 0.169 | 0.251 | **0.372** |
-| researchcodebench | 0.162 | 0.260 | **0.353** |
-
-No estimator built from two benchmarks comes close to the third. Consequently **budget 0, which carries 10% of the ALC weight, is close to unwinnable**: it is an information problem, not a modelling one.
-
-### 3.2 Weight benchmarks equally, not cells
-
-The public benchmarks differ in size by a factor of fifteen (57,808 vs 3,759 cells). A prior computed over pooled cells is therefore set almost entirely by `multi_swebench`. But the evaluated benchmark is **a new draw from the population of benchmarks, not from the pooled cell population**, so each benchmark should count once.
-
-Measured effect, K fixed at 5, 8 seeds, common random numbers:
-
-| held out | gain | sd over 8 seeds |
-|---|---:|---:|
-| multi_swebench | −0.0003 | 0.0000 |
-| real_webagents | +0.0092 | 0.0008 |
-| researchcodebench | +0.0098 | 0.0011 |
-
-The negative fold is the one exemption we allow under §2.2: its standard deviation is zero — it is deterministic, not noise — and the mechanism is explicit. On that fold the two priors are 0.360 and 0.362, numerically the same estimator; the truth is 0.148, far below both. The −0.0003 records which of two badly wrong numbers is 0.002 less wrong, and is thirty times smaller than the gains on the folds where the two priors actually differ.
-
----
-
-## 4. What we tried to add, and why none of it survived
-
-### 4.1 Subject ability
-
-Relative model strength does transfer. Per-benchmark logit deviation from the benchmark mean, for models appearing in both benchmarks:
-
-| pair | n | Pearson | Spearman |
-|---|---:|---|---|
-| multi_swebench × real_webagents | 11 | +0.616 (p=0.044) | +0.618 |
-| multi_swebench × researchcodebench | 9 | +0.849 (p=0.004) | +0.933 |
-| real_webagents × researchcodebench | 13 | +0.559 (p=0.047) | +0.621 |
-
-All three same sign; sample sizes are 9–13, and a Bonferroni correction over three tests leaves only the middle pair.
-
-Applying this as a prior shift, at shrinkage 0, 0.5, 0.75 and 1.0, **fails at every setting**. The mechanism is a single ratio — the benchmark-level prior error against the between-subject spread, both in logit:
-
-| held out | level error | subject spread | ratio | ALC |
-|---|---:|---:|---:|---|
-| multi_swebench | −1.18 | 0.70 | **1.70** | **worse**, 0.1665 → 0.1784 |
-| real_webagents | +0.57 | 1.28 | 0.45 | slightly better |
-| researchcodebench | +0.44 | 0.94 | 0.47 | flat |
-
-**The ratio predicts the sign of each fold.** This is a real loss with a mechanism that will recur, not an artefact, so §2.2 rejects it.
-
-The underlying reason is structural: the subject prior and the acquired labels estimate *the same quantity* — this subject's rate on this benchmark. The labels are unbiased. The prior carries an unknown benchmark-level bias of the same magnitude as its signal.
-
-### 4.2 Item difficulty
-
-Item difficulty is the larger component. After subtracting binomial sampling noise:
-
-| | real item variance | share of total | subject share, for comparison |
-|---|---:|---:|---:|
-| multi_swebench | 0.0361 | **28.5%** | 22.1% |
-| real_webagents | 0.0721 | **30.9%** | 19.6% |
-| researchcodebench | 0.0908 | **39.7%** | 10.4% |
-
-Three families of item-side features were tested.
-
-**`item_features` does not transfer at all.** The key vocabularies are disjoint: `lang` in `multi_swebench`, `website` in `real_webagents`, `paper` in `researchcodebench`. On an unseen benchmark the field is effectively absent.
-
-**Generic content features reverse sign.**
-
-| | log length | code fences |
-|---|---|---|
-| multi_swebench | −0.004 (p=0.86) | −0.007 |
-| real_webagents | **−0.264** (p<0.001), longer is harder | (constant) |
-| researchcodebench | **+0.155** (p=0.024), longer is *easier* | +0.289 (p<0.001) |
-
-A model using them would not merely fail to help; it would subtract on a benchmark whose sign it guessed wrong.
-
-**Official embeddings predict difficulty within a benchmark and not across.** Ridge on 50 principal components:
-
-| | within benchmark, 5-fold CV | across benchmarks |
-|---|---|---|
-| real_webagents | **+0.347** (p=5e-8) | −0.10 |
-| researchcodebench | **+0.493** (p=2e-14) | −0.38 |
-| swe_rebench | **+0.233** (p=1e-78) | −0.04 |
-
-The within-benchmark column is the control: the model can learn this target. The across column is therefore not a failure to learn.
-
-*A correction we make explicitly:* our first reading of the across column was "negative transfer". It is not. Training on a single benchmark and testing on another gives r between −0.128 and +0.042, mostly not significant, and the pooled −0.383 shrinks to −0.260 at 10 components. Part of the apparent negative is pooled PCA fitting benchmark identity at high component counts. **The correct statement is that transfer is zero.** The conclusion is unchanged; the reason had to be right.
-
-### 4.3 Why a latent-trait model was abandoned
-
-A latent-trait model earns its keep by decomposing an observation into ability and difficulty. Under this competition's structure, the ability half is estimated more accurately by the labels themselves (§4.1), and the difficulty half cannot be recovered from features on an unseen benchmark (§4.2). **Neither half has an independent information source, so the decomposition has nothing to contribute.** We report this because our own pre-registered plan was to build one.
-
-### 4.4 Nearest neighbours on the acquired labels
-
-The one route that does not require cross-benchmark transfer: embeddings predict difficulty *within* a benchmark, and the acquired labels come *from the test benchmark*. We weighted held-out items by cosine similarity to the labelled ones, blended halfway toward the plain label mean, and compared MSE against the label mean over 200 random draws of the labelled set.
-
-| benchmark | b=7 | b=15 | b=31 |
+# Online Hierarchical IRT with Assumed-Density Filtering for Predictive AI Evaluation
+
+*Technical report — Predictive AI Evaluation Competition, NeurIPS 2026. DRAFT.*
+
+> **Status.** Every number below is a local hold-out estimate on the public
+> measurement-db, produced by the scripts in this repository. None of them is a
+> leaderboard result; the leaderboard was never consulted for model selection.
+
+## 1. Task and scoring
+
+A predictor receives a subject (eight visible attributes: `normalized_name`,
+`provider`, `release_date`, `access_date`, `harness`, `reasoning_effort`,
+`harness_version`, `subject_features_extra`), an item (`item_content`,
+`item_features`, `interactors`, anonymous `benchmark_id`) and the labels acquired
+so far, and outputs P(correct). Brier scores at label budgets
+b ∈ {0, 1, 3, 7, 15, 31} are combined as
+ALC = 0.1·B₀ + 0.2·B₁ + 0.2·B₃ + 0.2·B₇ + 0.2·B₁₅ + 0.1·B₃₁,
+so 80 % of the weight lies at 1–15 labels. The official rules average Brier
+within each subject–benchmark pair first and then across pairs with equal weight,
+"regardless of its number of responses"; all numbers in this report use that
+pair-macro aggregation. Test benchmarks are private and unseen during development.
+
+## 2. Data
+
+* **Training corpus.** The public `aims-foundations/measurement-db` (Hugging
+  Face, dataset revision `bc8204d811823da849c6686bf124d4ca9f82e4de`), restricted
+  — like the organizers' preparation script — to benchmarks with
+  `response_type = binary` and `granularity = item`.
+* **What that leaves.** The repository holds 10 benchmark directories
+  (`response_type`: 6 binary, 2 mixed, 2 fraction). Two of the six "binary"
+  directories are `reproduction_checks/.../tables` smoke artifacts carrying 1 and
+  2 responses and re-using their parent's `benchmark_id`; they are not
+  independent benchmarks and are excluded (they would also fail the ≥ 80-item
+  rule). **Four usable benchmarks remain**, and neither of the two excluded
+  top-level benchmarks (`matharena`, `mmdocrag`) is replaced, so the training
+  pool contains no mathematics and no document-understanding benchmark.
+
+  | benchmark | domain | subjects | items | responses | density | base rate |
+  |---|---|---|---|---|---|---|
+  | `multi_swebench` | software engineering, agents | 82 | 2 126 | 57 808 | 0.332 | 0.148 |
+  | `researchcodebench` | software engineering, ML engineering | 31 | 212 | 6 572 | 1.000 | 0.352 |
+  | `swe_rebench` | software engineering, agents | 1 | 6 306 | 6 306 | 1.000 | 0.475 |
+  | `real_webagents` | agents and tool use | 33 | 233 | 3 759 | 0.489 | 0.375 |
+
+  In total 74 445 responses, 8 877 items, 147 subject configurations and 60
+  distinct model identities. 17 identities appear in ≥ 2 benchmarks and **none in
+  ≥ 5**, so the cross-benchmark ability calibration rests on 17 models.
+* **Attribute coverage.** `normalized_name` and `provider` 100 %,
+  `release_date` 93.9 %, `access_date` and `harness` 55.8 %,
+  `harness_version` 0.7 %, **`reasoning_effort` and `subject_features_extra`
+  0 %**. The configuration-effect terms for reasoning effort therefore have no
+  support in this corpus. `item_features` is non-empty for 2 571 items
+  (most common keys `lang`, `website`, `paper`); `interactors` is empty
+  everywhere.
+* **Preprocessing.** One response per (subject, item, interactors): the
+  lowest (test condition, trial) row with a 0/1 grade, because the visible input
+  cannot distinguish trials or conditions. Missing attributes become `""`.
+* **No other data.** No external data, benchmark results, model cards or
+  web sources were used. The model registry used for normalized names is the one
+  already embedded in measurement-db subject tables.
+
+## 3. Local evaluation protocol
+
+All model selection used a local replica of the evaluator (`eval/local_scorer.py`),
+never the Codabench leaderboard.
+
+* **Streaming protocol.** Re-implements `streaming_alc_v1` from the organizers'
+  `tools/streaming_ingestion.py`: benchmarks with ≥ 80 items; a 50/50
+  acquisition/evaluation item split **per subject–benchmark pair**; each pair's
+  acquisition items are streamed one at a time with `max_labels = 31`; the
+  default policy queries when a SHA-256 uniform falls below
+  `labels_remaining / items_remaining`; all pairs reach budget b before the
+  checkpoint at b; `labeled` contains the labels of all sampled pairs.
+* **Checked against the official rules page** (aimslab.stanford.edu/competition):
+  the per-pair 50/50 split, the pair-macro averaging, the ALC weights, the
+  budgets, `max_labels = 31`, the `context` fields (`subject_id`,
+  `benchmark_id`, `labels_acquired`, `labels_remaining`, `max_labels`,
+  `items_remaining` including the current candidate), and the global scope of
+  `labeled` all match. Two of our earlier assumptions did **not** match and were
+  corrected: the split had been made once per benchmark and shared across
+  subjects, and Brier had been averaged over predictions rather than over pairs.
+  Both corrections are locked by regression tests
+  (`test_official_protocol_defaults`, `test_pair_macro_weights_pairs_equally`).
+* **Verification.** (i) A constant 0.5 predictor scores exactly 0.25 at every
+  budget and in ALC (weights are integers in tenths and summed with `math.fsum`).
+  (ii) The organizers' own streaming client (`run_streaming`) driven by our
+  coordinator reproduces our acquisitions and predictions exactly (unit test).
+  (iii) Label sets are nested across budgets.
+* **Hold-out.** Two-way: benchmarks are split into 5 folds (benchmarks sharing
+  ≥ 5 % item texts are kept together), and 20 % of model identities are removed
+  from every training fold and appear only as unseen subjects. Items are never
+  split at random. With four benchmarks the 5-fold split degenerates to
+  **leave-one-benchmark-out** (fold sizes 1, 1, 1, 1, 0). Local evaluation uses
+  every subject configuration in the corpus: 147 pairs and 19 621 evaluation
+  targets, of which 27 pairs / 3 556 targets belong to the 12 held-out
+  identities.
+* **Still unverified.** The rules page does not state the evaluation worker
+  concurrency or the size of the private test set. The engine holds an `RLock`
+  and is safe under threads; process-level parallelism only re-creates state.
+  The caps we pass locally (≤ 200 subjects per benchmark, ≤ 200 evaluation
+  items per pair, ≤ 800 streamed items per pair) are ours, not the rules'; at
+  these values none of them binds on this corpus, so the reported numbers use
+  the whole public dataset. The rules' own cap — 1 000 unique subject–item
+  pairs — applies to formative feedback runs only.
+
+## 4. Method
+
+### 4.1 Model
+For benchmark B, subject s and item i,
+
+  logit P(y=1) = a·θ_s + v_s − β − d_i − Σ_f w_f
+
+* θ_s — general ability, **calibrated offline**. Known models use their fitted
+  ability; unseen models use a ridge regression on provider, release date,
+  parameter count (parsed from the name) and name tokens, plus learned effects of
+  reasoning effort / harness settings.
+* a, β — the benchmark's discrimination of general ability and its difficulty;
+  priors are the across-benchmark distribution of item-level fits.
+* v_s ~ N(0, τ² + (ā² + var a)·var θ_s) — subject × benchmark deviation.
+* d_i ~ N(0, σ_δ²) — item difficulty; w_f ~ N(0, σ_w²) — effects of the
+  item's `item_features` / `interactors` tokens, learned within the benchmark.
+
+### 4.2 Offline calibration (`train/fit_offline.py`)
+1. Subject abilities by weighted alternating least squares on per-(benchmark,
+   subject) logit accuracies: logit(acc) = a_B θ_u − b_B, with θ of a
+   configuration unit shrunk towards its model's ability plus configuration
+   effects.
+2. Item side: for every training benchmark, an item-level model
+   (a, β, v_s, d_i with variance components τ², σ_δ²) by block-coordinate Newton
+   with EM variance updates. The distribution of these item-side parameters across
+   benchmarks gives the priors for a new benchmark. Item-level parameters are
+   never transferred directly, because the test benchmarks are new.
+3. Hyper-parameter scales and the shrinkage weights are selected on the local
+   folds (`eval/tune.py`), with a cross-fitted estimate for honesty. Selected
+   scales: `delta_var` 1.00, `tau2` 0.21, `beta_var` 6.76, `a_var` 0.60,
+   `w_var` 4.16.
+   The coordinate search over the scales was run on a 40-subject-per-benchmark
+   subsample, because a search under the full protocol costs about 20 s per
+   candidate and does not fit the compute available here; the shrinkage weights
+   are then fitted **and cross-fitted under the full protocol**
+   (`--scales ... --rounds 0 --crossfit`). This is disclosed because the scales
+   are therefore selected on a smaller sample than the one they are reported on.
+
+### 4.3 Online update (`submission/pirt_online.py`)
+One joint Gaussian over all latents of a benchmark. Each label is absorbed by an
+assumed-density-filtering step: the logistic likelihood is approximated by a
+probit, whose moments are closed-form, followed by a rank-one covariance update.
+Labels are processed one at a time in the order supplied; the state is cached
+and extended incrementally when the evaluator's label list grows. Labels of other
+subjects on the same benchmark update the shared latents (β, a, d_i, w_f). A
+numpy-free scalar fallback runs if numpy is unavailable.
+
+### 4.4 Prediction and safety net
+p = E[σ(logit)] under the posterior (probit approximation), then
+p' = (1 − w_n)·p + w_n·p̄ with p̄ the training base rate and w_n chosen per
+label count on local validation. Selected weights: w₀ = 0.535, w₁ = 0.141,
+w₃ = 0.000, w₇ = 0.015, w₁₅ = 0.004, w₃₁ = 0.003; final p̄ = 0.2816.
+
+w_n is the weighted least-squares optimum in which each prediction of a pair
+with n targets carries weight 1/n, matching the way the metric averages; pooling
+the predictions instead would let the largest pairs choose w for every pair. On
+this corpus the two agree to within 1e-5 of ALC, so the alignment is a
+correctness property rather than a source of gain.
+
+p̄ is the mean over training subject–benchmark pairs of each pair's accuracy,
+not the pooled response rate. This matters: pooling lets the largest benchmark
+set the target, which here would give 0.21 against a pair-weighted 0.31, and cost
+about 0.003 of B₀.
+
+### 4.5 Acquisition (`labeling.py`) — not shipped
+Streaming decision per candidate. The value of a candidate is the expected
+reduction of the posterior variance of the pair ability c = a θ_s + v_s − β
+(Fisher information under the current posterior, including the candidate's
+difficulty uncertainty), relative to a generic unseen item: ρ. The query
+probability is min(1, q·ρ²) with q = labels_remaining / items_remaining; with
+ρ ≡ 1 it is exactly the evaluator's random policy.
+
+A single pre-registered A/B (`eval/ab.py`, `results/acquisition_ab.md`) compared
+the random policy against Fisher information and against posterior uncertainty,
+with the decision rule fixed beforehand: ship only if ALC is lower **and** the
+95 % interval of a paired bootstrap over benchmarks excludes 0.
+
+| policy | ALC | ΔALC vs random | 95 % CI (benchmark clusters) |
 |---|---|---|---|
-| real_webagents | −0.060 | −0.004 | +0.041 (154/200) |
-| researchcodebench | +0.026 | +0.059 | +0.109 (185/200) |
-| swe_rebench | **−0.066** (34/200) | **−0.043** (27/200) | **−0.028** (24/200) |
+| random (official) | 0.16875 | — | — |
+| Fisher information | 0.16981 | +0.00106 | [−0.00071, +0.00345] |
+| posterior uncertainty | 0.16846 | −0.00029 | [−0.00321, +0.00448] |
 
-Two of three benefit at the largest budget; `swe_rebench` is hurt at every budget. The negative fold has a mechanism that can recur on a private benchmark: with one subject, its difficulty target is a single binary draw rather than an average over systems, and 31 labels cover 6,306 items very sparsely. Rejected under §2.2.
+Neither interval excludes 0, so **the submission ships without `labeling.py`**
+and uses the official random policy. The A/B was first run on the
+40-subject subsample (Fisher +0.00127, uncertainty +0.00156, both intervals
+straddling 0) and then re-run unchanged on the full protocol, which is the table
+above; the decision is the same under both, and the rule was not altered after
+seeing either. Posterior uncertainty turns marginally negative on the larger
+sample but its interval is four times wider than the effect. Fisher information
+is better at B₁ and B₃₁ and worse at B₃–B₁₅, where the ALC weight is
+concentrated; we report this as an observation, not as grounds for a third
+attempt.
 
-The ALC weighting compounds the problem: **B7 and B15 carry 20% each and B31 only 10%**, and the method is worst exactly where the weight is highest.
+## 5. Results (local hold-out)
 
-Note also that this route presumes embeddings are available at inference. They are not: submissions cannot fetch them, and the largest eligible source has none (§6).
+Cross-validated, leave-one-benchmark-out, pair-macro Brier; lower is better;
+147 pairs and 19 621 evaluation targets. The rows below are the fully
+out-of-fold model **before** hyper-parameter tuning, so no selection of any kind
+enters them.
 
----
+| Predictor | ALC | B₀ | B₁ | B₃ | B₇ | B₁₅ | B₃₁ |
+|---|---|---|---|---|---|---|---|
+| Constant 0.5 | 0.25000 | 0.2500 | 0.2500 | 0.2500 | 0.2500 | 0.2500 | 0.2500 |
+| Empirical mean (organizers) | 0.23110 | 0.2500 | 0.3449 | 0.2310 | 0.1902 | 0.1774 | 0.1740 |
+| **Online IRT** | **0.16875** | 0.2211 | 0.1932 | 0.1771 | 0.1593 | 0.1412 | 0.1248 |
+| Online IRT, own-pair labels only | 0.19450 | 0.2211 | 0.2117 | 0.1985 | 0.1875 | 0.1777 | 0.1731 |
 
-## 5. Submitted method
+That is 27 % better than the organizers' baseline on ALC. With the shrinkage
+weights fitted and cross-fitted under the same protocol, the **cross-fitted
+(honest) estimate** is **ALC 0.16515**, per-budget Brier
+0.2061 / 0.1897 / 0.1724 / 0.1574 / 0.1408 / 0.1248.
 
-```python
-PRIOR = 0.3377      # equal-weight mean of the four eligible base rates
-K     = 2.5
+Unseen model identities (27 of 147 pairs, calibration never saw the identity):
+Online IRT 0.18424, empirical mean 0.24960, constant 0.5 0.25000. Seen
+identities: 0.16526 / 0.22693 / 0.25000. The advantage does not depend on having
+met the model before.
 
-post = (PRIOR * K + hits) / (K + n)
+Per fold the ALC is 0.1509, 0.1943, 0.2728 and 0.1860; the worst fold is
+`swe_rebench`, which contributes exactly one pair.
+
+Calibration improves with labels: expected calibration error
+0.122 → 0.072 → 0.058 → 0.023 → 0.027 → 0.016 across the six budgets
+(`figures/calibration.pdf`). At zero labels the predictor is visibly
+over-confident; this is what the shrinkage weight w₀ = 0.535 absorbs.
+
+Figures: `figures/learning_curves.pdf`, `figures/calibration.pdf`;
+acquisition A/B: `results/acquisition_ab.md`; data survey:
+`results/data_survey.md`; code review notes: `results/ocr_review*.md`.
+
+## 5b. Results (live, Codabench formative feedback)
+
+The shipped artefact (`dist/paiec_irt.zip`, sha256 `98555787…2cfe0f`, 15,436
+bytes) was submitted **five times unchanged**, three on 2026-10-01 (955485,
+955728, 955767) and two on 2026-10-02 (957572, 957580). The rules state that
+*"each formative evaluation uses a newly sampled subset of the hidden test
+data, capped at 1,000 unique subject–item pairs"*, so the five runs differ only
+in which subject–benchmark pairs were drawn. We report them as a repeated
+measurement, because a single live score turns out to be far noisier than we
+expected, and the noise is the main thing we learned from them.
+
+| | 955485 | 955728 | 955767 | 957572 | 957580 | mean | **SD** | local | gap | |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **Brier ALC** | 0.20624 | 0.20098 | 0.18124 | 0.18685 | 0.19461 | 0.19398 | **0.0102** | 0.17540 | +0.0186 | 1.8 σ |
+| B₀ | 0.30845 | 0.27314 | 0.25431 | 0.30584 | 0.28153 | 0.28465 | 0.0228 | 0.21634 | +0.0683 | **3.0 σ** |
+| B₁ | 0.25933 | 0.22918 | 0.22100 | 0.24012 | 0.21610 | 0.23315 | 0.0172 | 0.20171 | +0.0314 | 1.8 σ |
+| B₃ | 0.19287 | 0.20820 | 0.17058 | 0.20076 | 0.19303 | 0.19309 | 0.0141 | 0.18436 | +0.0087 | 0.6 σ |
+| B₇ | 0.17314 | 0.17904 | 0.15904 | 0.14204 | 0.17071 | 0.16479 | 0.0147 | 0.16570 | −0.0009 | −0.1 σ |
+| B₁₅ | 0.16742 | 0.17175 | 0.15398 | 0.13154 | 0.16892 | 0.15872 | 0.0167 | 0.15042 | +0.0083 | 0.5 σ |
+| B₃₁ | 0.16840 | 0.16031 | 0.14893 | 0.13378 | 0.16701 | 0.15569 | 0.0145 | 0.13330 | +0.0224 | 1.6 σ |
+| ECE | 0.16324 | 0.13985 | 0.13641 | 0.19109 | 0.14631 | 0.15538 | 0.0225 | — | — | |
+
+Each run drew 8 or 9 subject–benchmark pairs (8, 8, 8, 9, 9), and in every one
+the unweighted mean of the per-pair ALCs reproduces the reported total to six
+decimals, confirming that the official aggregation is an equal-weight mean over
+pairs. Run 3's eight pairs share no subject with run 1's. The sampled subjects —
+and, as runs 4 and 5 show, the number of them — are where the variance comes
+from: with eight or nine pairs per run, the identity of the draw dominates.
+
+**The measurement noise is the headline result.** A single formative score has
+a standard deviation of about **0.010** on ALC, **0.014–0.023** per budget, and
+**0.022** on ECE. The spread across five identical submissions is 0.0250,
+2.5 SD. This is larger than most of the differences one would want to act on.
+What the evidence does and does not support:
+
+1. **The live result is worse than the local estimate, but not significantly
+   so.** The mean gap is +0.019 on ALC, 1.8 SD. All five runs lie above the
+   local estimate, so the direction is consistent across every draw; the
+   magnitude is not established.
+2. **Only the zero-label budget survives the noise.** B₀ is +0.068 above local
+   at **3.0 SD**, consistent in all five runs, and it is the one per-budget
+   reading that strengthened as runs were added (2.3 σ at n=3, 2.6 σ at n=4,
+   3.0 σ at n=5). B₁ did not: it was 1.7 σ at n=3 and is 1.8 σ now, with the
+   fifth run's 0.2161 nearly level with the local 0.2017. **The shortfall is at
+   the zero-label prior specifically, not at "the low budgets" generally.**
+3. **The middle budgets are indistinguishable, and we can show it rather than
+   assert it.** B₇ read +0.0047 (worse than local) at n=3, flipped sign to
+   −0.0024 at n=4, and sits at −0.0009 (−0.1 SD) at n=5. **One additional draw
+   reversed the direction of a per-budget conclusion.** B₃ and B₁₅ are likewise
+   within 0.6 SD. Any statement about an individual budget other than B₀ is
+   reading the draw, not the method.
+4. **At zero labels the method is at best level with predicting 0.5.** B₀ was
+   above the constant-0.5 value of 0.2500 in all five runs (minimum 0.2543),
+   but the mean margin is +0.035, only 1.5 SD, and the smallest is 0.2 SD. We
+   report this as a consistent direction rather than a confirmed deficit.
+5. **Leaderboard position is not a stable quantity here, but the gap to the
+   leader is.** The five scores span 0.1812–0.2062, a range that covered
+   roughly four places on the 21-entry public table at the time of measurement,
+   so we do not quote a rank. Against the organisers' own entry at 0.180113 our
+   mean is +0.014 (1.4 SD) — worse in all five runs but not significantly so,
+   the closest run being only 0.0011 above it. Against the best entry at
+   0.117238 the gap is +0.077, **7.6 SD**: that one is established. The 27 %
+   margin over the empirical-mean baseline in §5 is a statement about that
+   baseline method on local hold-out data and should not be read as
+   competitiveness.
+
+Two further remarks on procedure. First, the noise calibration should have
+been run before any inference was drawn from a live score, not after. Our first
+live number was used to diagnose a deficit, propose three fixes and revise
+protocol conclusions, all before we knew its standard deviation was 0.010 —
+with hindsight that first "finding" was under 3 SD and should have been held.
+Second, σ̂ itself is estimated from five points and carries roughly 35 %
+relative error, so it sits close to the 0.01 threshold we pre-registered for
+discounting single-score inferences. We have not spent further submissions
+trying to resolve which side of that threshold it falls on: at this magnitude
+the noise is of the same order as every effect we would act on, and the third
+decimal of σ̂ does not change that.
+
+We pre-registered and tested three mechanism-level fixes for the zero-label
+prior: shrinking towards 0.5, estimating the target benchmark's success rate
+online with a 0.5 cold start, and the same with the original constant as the
+cold start. Gates were fixed before running; **all three failed** on
+leave-one-benchmark-out, each making B₀ and/or B₁ worse. The constant was fitted
+on exactly the four public benchmarks, so for them it is close to the best
+available prior rather than a wrong one. The live shortfall at B₀ — now the one
+per-budget effect that clears the noise — appears to involve a benchmark whose
+success rate lies outside the 0.148–0.475 range the public pool spans, which no
+local protocol can reproduce, so we record the hypothesis as **untested rather
+than refuted**. The shipped configuration is unchanged.
+
+**No model choice in this report was made using live feedback.** Formative
+evaluation resamples on every submission and the summative evaluation uses a
+separate common subset, so selecting on it would be selecting on noise. All
+five runs above were spent on measuring that noise, not on choosing anything.
+Of the ten submissions of this artefact, two failed outright on the platform
+and three have remained queued without producing output (one for over 33
+hours); we report the five that scored.
+
+## 6. Limitations
+
+* **The training pool is very small and narrow.** Four benchmarks, all software
+  engineering / agent tasks; no mathematics, no document understanding. The
+  private test benchmarks may well include domains with no representative here,
+  and the across-benchmark priors that the method depends on are estimated from
+  four points.
+* **The local estimate is coarse.** Leave-one-benchmark-out over four benchmarks
+  gives per-fold ALC of 0.151, 0.194, 0.273 and 0.186. Any difference smaller
+  than that spread — including the 0.004 gained by hyper-parameter tuning — is
+  not resolvable with this data. `swe_rebench` contributes a single
+  subject–benchmark pair, and on that fold the model (0.273) is worse than a
+  constant 0.5; a benchmark with one subject gives the offline calibration
+  nothing to learn from.
+* **The live estimate is coarse too, and for a different reason.** Each
+  formative evaluation draws eight or nine subject–benchmark pairs afresh, so a
+  single live score carries a standard deviation of about 0.010 on ALC and
+  0.014–0.023 per budget (§5b, five identical submissions). That is the same
+  order as every effect in this report we might want to act on, so the live
+  feedback supports only three statements: the gap to the leading entry is real
+  (7.6 SD), the zero-label shortfall against our local estimate is real
+  (3.0 SD), and nothing else is resolved — including whether we are behind the
+  organizers' own entry (1.4 SD). We measured this only after drawing
+  conclusions from the first live score, which was a mistake in sequencing, not
+  just in arithmetic.
+* **The pre-registered bootstrap is weak by construction.** Resampling four
+  benchmark clusters yields a coarse distribution. We kept the rule rather than
+  changing it after seeing the data, and report a pair-clustered interval
+  alongside as a diagnostic; both agree that the acquisition variants are not
+  distinguishable from random.
+* **Zero-label prediction is the weakest budget, but it does beat a constant.**
+  B₀ is 0.2061 cross-fitted. The right comparison is a constant chosen the same
+  way the model is fitted — the base rate of the training folds only — which
+  scores 0.2122; the model is 0.006 better. An earlier draft of this report
+  claimed the opposite by comparing against the constant that minimises error on
+  the evaluation pool itself (0.2160 at the smaller protocol), which is not a
+  baseline any predictor could have chosen in advance. This is a statement about
+  local hold-out data against a base-rate constant, and it does not carry over
+  to the live setting: §5b finds live B₀ above the constant-0.5 value of 0.2500
+  in all five runs, and above our own local B₀ by 3.0 SD. The zero-label prior
+  is the one place where local and live disagree beyond the noise.
+  The weighted least squares for w_n described in §4.4 was aligned with the metric after that
+  finding and changed the result by less than 1e-5 of ALC, confirming that the
+  earlier gap was an artefact of the unfair baseline, not a weighting bug.
+* **`reasoning_effort` has no support.** The configuration-effect machinery for
+  it is inert on this corpus; if the private subjects carry that field, its
+  effect is untrained.
+* Items of the evaluation pool are never labeled, so item-level variation comes
+  only from visible features; the text of items is not used by the model beyond
+  feature tokens. The text-difficulty prior (Task 4 of our plan) was not built.
+* One latent ability dimension plus benchmark-specific deviations; skills that
+  do not correlate with general ability are captured only through v_s.
+* ADF is order-dependent and approximates the posterior.
+* Evaluation worker concurrency is unstated in the rules; the engine is
+  thread-safe but has not been tested under the organizers' actual harness.
+
+## 7. Reproducibility
+
+```
+python3.11 -m venv .venv && . .venv/bin/activate
+pip install -r requirements-lock.txt
+git clone --depth 1 https://github.com/aims-foundations/paiec_baseline   # pinned at 82d330d
+export PAIEC_BASELINE_DIR=<path to paiec_baseline>
+export HF_TOKEN=<read token; the dataset is gated>
+CAPS="--max-subjects 200 --max-eval 200 --max-stream 800"
+python scripts/download_measurement_db.py --out data/raw
+python scripts/survey_data.py --data data/raw --out results/data_survey.md
+python -m eval.run_cv --data data/raw --variants const0.5 empirical_mean irt irt_pairscope \
+    $CAPS --out results/by_budget.csv --records results/cv_records.npz
+python -m eval.tune --data data/raw --crossfit --out results/tuned_hyper.json      # scale search, 40-subject subsample
+python -m eval.tune --data data/raw --crossfit --rounds 0 --scales results/tuned_hyper.json \
+    $CAPS --out results/tuned_hyper_full.json                                      # shrinkage under the full protocol
+python -m eval.ab  --data data/raw $CAPS --out results/acquisition_ab.md
+python tools/make_figures.py --records results/cv_records.npz --curves irt empirical_mean irt_pairscope \
+    --calibrate irt --ab "irt:random" "irt+uncertainty:Posterior uncertainty" --ab-records results/ab_records.npz
+python -m train.train_final --data data/raw --tuned results/tuned_hyper_full.json
+python tools/build_submission_zip.py
+python $PAIEC_BASELINE_DIR/check_submission_zip.py dist/paiec_irt.zip
 ```
 
-where `hits` and `n` count acquired labels for the evaluated subject–benchmark pair. Both constants are derived.
+Seeds are fixed (split seed 0, deterministic SHA-256 hashing). Verified on
+Python 3.11.16 with the locked dependency versions: two `run_cv` runs produce
+identical CSVs, two `train_final` runs produce identical `params.json`, and two
+ZIP builds are byte-identical
+(sha256 `98555787478009fc9e53b05a7a532912db37b716e24ed9abac121bac33c2fe0f`).
+The organizers' `check_submission_zip.py` passes without `--static-only`.
+Extracted into an empty directory and imported in a fresh process, the model
+predicts in single-digit microseconds per call (6.7 µs with numpy, 2.8 µs on the
+numpy-free fallback), which is negligible against the 8-hour run limit;
+malformed labels are skipped and an empty label list returns the prior.
 
-### 5.1 K has a closed form
+The submission ZIP contains `model.py`, `pirt_online.py`, `params.json`,
+`requirements.txt` and `README.md`. No `models.txt` is needed: the submission
+declares no Hugging Face model. The build script scans every packaged file for
+credentials and refuses parameters fitted on synthetic data.
 
-The formula is the posterior mean of a Beta(a, b) prior with K = a + b. The Beta variance gives
+## 8. Disclosures
 
-$$K = \frac{\mu(1-\mu)}{\sigma^2} - 1$$
-
-where σ² is the variance of the true rate across subject–benchmark pairs — a quantity we measured rather than searched. With the benchmark's own rate unknown, the prior must carry both components:
-
-between-benchmark 0.0190 + within-benchmark between-subject 0.0314 = **0.0504**, against μ(1−μ) = 0.2237, giving **K\* = 3.44**.
-
-A simulation of the implied Beta-binomial confirms that 3.44 minimises the ALC-*weighted* Brier, which the derivation alone does not guarantee, and that **the optimal K is identical at every budget** (budget 0 is K-independent). Making K budget-dependent therefore buys nothing and would fit noise.
-
-### 5.2 K is set below the point estimate
-
-The between-benchmark variance rests on four observations, and the private benchmarks may be more diverse than the public ones — which pushes K\* down quickly (2.2 at twice the observed spread, 1.1 at four times). Regret across those scenarios:
-
-| K | max regret | weighted regret |
-|---|---:|---:|
-| 2.5 | **0.0016** | **0.00070** |
-| 3.44 | 0.0047 | 0.00104 |
-| 5 | 0.0095 | 0.00244 |
-
-K = 2.5 is never more than 0.0016 from optimal in any scenario considered, and is selected by both minimax and plausibility-weighted regret.
-
-The choice does depend on one judgement, which `experiments/sensitivity.py` prints rather than hides. Adding a fifth scenario at eight times the observed spread — where benchmark base rates would span essentially the whole unit interval, which we consider implausible — moves the minimax choice to K = 2 (max regret 0.00299 against 0.00461 for K = 2.5), while plausibility-weighted regret still prefers 2.5. We report the four-scenario set as primary and name the disagreement; K anywhere in 2 to 3 is defensible, and K = 5 is not.
-
-We note that the public data cannot adjudicate this choice — on it, K = 3 and K = 5 differ by 0.0002 with inconsistent sign. Nor should it be expected to: leave-one-out sees only the diversity of the observed benchmarks, while the decision is entirely about unobserved diversity.
-
-### 5.3 Never return an unshrunk mean
-
-The official `empirical_mean` baseline returns a bare 0 or 1 at budget 1. Its B1 is worse than a constant 0.5 in **all three folds** (0.2838 / 0.3620 / 0.4434), and budget 1 carries 20% of the weight. It recovers at higher budgets, ending at 0.2429 overall — better than 0.2500, but its low-budget behaviour should not be copied.
-
----
-
-## 6. Results
-
-Leave-one-benchmark-out over the three cross-subject benchmarks:
-
-| method | multi_swebench | real_webagents | researchcodebench | **ALC** |
-|---|---:|---:|---:|---:|
-| constant 0.5 | 0.2500 | 0.2500 | 0.2500 | 0.2500 |
-| official `empirical_mean` | 0.1980 | 0.2499 | 0.2810 | 0.2429 |
-| shrunk, pooled-cell prior | 0.1662 | 0.2252 | 0.2354 | 0.2089 |
-| **shrunk, equal-benchmark prior** | — | — | — | **0.2015** |
-
-Better than the official baseline in 3 of 3 folds.
-
----
-
-## 7. Limitations
-
-- **Three benchmarks.** Every generalisation claim here has a denominator of three. The decision rule in §2.2 is a response to that, not a solution.
-- **The 4.1 correlations are thin.** n = 9–13; only one pair survives Bonferroni. We rely on the consistent sign, not on individual p-values.
-- **Embeddings cover three of four eligible sources**, and the conclusions in §4.2 about embedding transfer exclude `multi_swebench` entirely.
-- **`swe_rebench` is a single subject.** Its "difficulty" is one binary draw per item, which is why it behaves differently in §4.4. It may be unrepresentative of private benchmarks in both directions.
-- **The scenario weights in §5.2 are ours.** The minimax result does not depend on them; the weighted result does.
-- **We did not evaluate an acquisition policy.** Its ceiling is bounded by §4.2: if items cannot be distinguished, the choice of which to label cannot matter much. A diversity-based policy computed from raw item text remains untested.
-
----
-
-## 8. Notes for data curation
-
-Offered as contributions to the shared resource rather than as criticism.
-
-1. **The embedding release cannot be joined to the core tables by any supplied identifier.** `item_id` intersects at 0/233, 0/212 and 0/6306. `content_hash` (16 hex) and `content_sha1` (40 hex) are different algorithms and intersect at zero. The only key that works is **SHA-1 of the raw item content**, which matches 233/233 and 212/212 exactly. A naive join yields an empty result, and a left join with a fill would silently produce all-zero embedding vectors.
-2. **Normalisation is not safe.** `sha1(content.strip())` matches 231/233 in `real_webagents` and **0/212** in `researchcodebench`.
-3. **`multi_swebench` has no embeddings**, though it is 84% of the eligible cross-subject data.
-4. **`researchcodebench` embeddings are 97.2% truncated** at 8,000 tokens. Their intra-benchmark median cosine similarity is 0.511, against 0.173 and 0.230 elsewhere — truncated items look alike.
-5. **`n_tokens` is a benchmark-identity proxy**, with medians of 22 / 8,000 / 220. Only `swe_rebench` shows real within-benchmark variation.
-6. **The submission checker's smoke item omits `benchmark_id`** and passes `labeled=[]`. Any `predict()` that reads `item["benchmark_id"]` directly is rejected, while the documentation describes that field as supplied. The official baseline avoids this only by returning early on empty labels. We verified both branches.
-
----
-
-## 9. Reproducibility
-
-- **Training data.** `aims-foundations/measurement-db` (gated, auto-approved). The 16 files listed in §1.3 are sufficient. No data outside `measurement-db` was used for the submitted model; `aims-foundations/measurement-db-embed` was used only for the negative results in §4.2 and §4.4 and does not appear in the submission.
-- **Submission.** A single `model.py` with no dependencies beyond the standard library, no `models.txt` and no `requirements.txt`. It passes `check_submission_zip.py`.
-- **Constants.** `PRIOR` and `K` are computed by the scripts released with this report; neither was selected by score on a validation set.
-- **Code.** The validation harness (`alc.py`, `harness.py`, `load.py`), the derivation (`derive_k.py`, `sensitivity.py`) and the protocol experiments (`leakage_test.py`, `power.py`, `heterogeneity.py`) are released.
-- **Verification of the harness.** Seven self-tests with answers fixed by the competition rules rather than by a prior run: a constant 0.5 scores exactly 0.25 at every budget and in every fold; a perfect predictor scores 0 and an inverted one 1; benchmarks under 80 items are not split; the official baseline's B1 pathology reproduces.
-- **LLM assistance.** An LLM-based coding assistant (Claude) was used throughout development: for the measurement code, the validation harness, the submitted `model.py`, and drafting this report. All numerical results were produced by the released scripts. Two errors introduced during development are documented in-line — the transfer-sign misreading in §4.2, and a robustness test that passed only because the malformed inputs it chose happened to fall in already-guarded branches.
-
----
-
-## Appendix A — open threads
-
-Neither requires cross-benchmark transfer, so neither is blocked by §4:
-
-- An acquisition policy selecting for **diversity** in raw item text, computed in-process without an external model. Diversity reduces estimator variance whenever strata differ in mean, which §4.2 establishes they do — it does not require knowing *which* items are hard.
-- `swe_rebench`'s 6,306 items carry the most item-difficulty information in the corpus and are unused by the submitted model.
+* **Pretrained models:** none. The submission contains no neural network,
+  embedding model or LLM, and makes no API calls. Nothing in the evaluation path
+  touches the network.
+* **Data:** only the public (access-gated) `aims-foundations/measurement-db` at
+  revision `bc8204d811823da849c6686bf124d4ca9f82e4de`; see §2.
+* **LLM coding assistant:** Claude Opus 5 (Anthropic), used through the Claude
+  desktop app's agentic coding mode, to write the code and draft this report
+  under the author's direction; all results were produced by the scripts in this
+  repository.

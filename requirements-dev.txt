@@ -1,0 +1,9 @@
+# Development / offline-calibration environment (the submission itself needs only numpy)
+numpy
+scipy
+pandas
+pyarrow
+matplotlib
+scikit-learn
+huggingface_hub
+tabulate

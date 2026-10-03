@@ -1,0 +1,26 @@
+loaded 4 benchmarks in 4s; folds [1, 1, 1, 1, 0]
+  fold 0 irt                  ALC 0.15915 (1s)
+  fold 0 irt+fisher           ALC 0.15614 (1s)
+  fold 0 irt+uncertainty      ALC 0.15585 (1s)
+  fold 1 irt                  ALC 0.19664 (1s)
+  fold 1 irt+fisher           ALC 0.20028 (3s)
+  fold 1 irt+uncertainty      ALC 0.20022 (3s)
+  fold 2 irt                  ALC 0.33092 (0s)
+  fold 2 irt+fisher           ALC 0.33763 (0s)
+  fold 2 irt+uncertainty      ALC 0.33763 (0s)
+  fold 3 irt                  ALC 0.18600 (0s)
+  fold 3 irt+fisher           ALC 0.19006 (0s)
+  fold 3 irt+uncertainty      ALC 0.19139 (0s)
+| variant | ALC | B0 | B1 | B3 | B7 | B15 | B31 | dALC vs random | 95% CI (benchmark clusters) | 95% CI (pair clusters, optimistic) | ships? |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| irt (random) | 0.18029 | 0.2368 | 0.2060 | 0.1897 | 0.1688 | 0.1517 | 0.1338 | - | - | - | baseline |
+| irt+fisher | 0.18156 | 0.2368 | 0.2038 | 0.1940 | 0.1734 | 0.1531 | 0.1304 | +0.00127 | [-0.00278, +0.00414] | [-0.00246, +0.00511] | no |
+| irt+uncertainty | 0.18185 | 0.2368 | 0.2042 | 0.1943 | 0.1737 | 0.1527 | 0.1318 | +0.00156 | [-0.00306, +0.00543] | [-0.00253, +0.00606] | no |
+
+## Decision
+
+Rule fixed before the run: ship only if dALC < 0 and the benchmark-cluster 95% CI excludes 0.
+
+**Keep the random policy.** No variant met the rule, so the submission ships without `labeling.py`.
+
+total 16s
