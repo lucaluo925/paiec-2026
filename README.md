@@ -64,12 +64,15 @@ artefact was submitted **nine times unchanged** and the scores span 0.1685 to
 0.2062 — mean 0.18817, **SD 0.0113**, a range of 3.3 SD between two evaluations
 of the same bytes. Each formative evaluation draws only eight or nine
 subject–benchmark pairs afresh, which is where that comes from. Of everything
-the live feedback could be asked, it answers two things: the gap to the leading
-entry is real (6.3 SD) and the zero-label shortfall against our own local
-estimate is real (2.7 SD, above local in all nine). Nothing else is resolved —
-not whether this entry is behind the organizers' own (0.7 SD), and not any
-other per-budget reading. §5b of the report has the full table and the σ̂
-trajectory, which is not monotone in n.
+the live feedback could be asked, it answers three: the gap to the leading
+entry is real (6.0 SD, with that entry also treated as a single draw), and B₀
+and B₃₁ exceed our local estimate in all nine draws (sign test p = 0.004).
+Nothing else is resolved — not the overall live-versus-local gap, which is
+0.5 SD once our own four-benchmark standard error of 0.026 is carried alongside
+the live mean's 0.0038, and not whether this entry is behind the organizers'
+own (0.7 SD). §5b of the report has the full table, the σ̂ trajectory (not
+monotone in n), and why the single-draw SD is the wrong denominator for any of
+these comparisons.
 
 ## Reproduce
 

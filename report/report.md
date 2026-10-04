@@ -35,7 +35,9 @@ byte-identical submissions of the same artefact span 0.1685 to 0.2062 — a
 standard deviation of **0.011** on ALC and 0.011–0.023 per budget, a range of
 3.3 SD between two evaluations of the same file, because each evaluation
 redraws only eight or nine subject–benchmark pairs. Of everything that feedback
-could be asked, only two statements survive it, and we state which. Second, three pre-registered
+could be asked, three statements survive it — the gap to the leading entry,
+and a shortfall against our local estimate at the two end budgets B₀ and B₃₁ —
+and we state what does not. Second, three pre-registered
 mechanism-level fixes for the zero-label prior — the one budget where the live
 result clearly exceeds our local estimate — were all falsified on
 leave-one-benchmark-out, and the shipped configuration was left unchanged. We
@@ -297,40 +299,72 @@ subject–benchmark pairs, and in every one the unweighted mean of the per-pair
 ALCs reproduces the reported total to six decimals — nine independent
 confirmations that the official aggregation is an equal-weight mean over pairs.
 
-| | mean | **SD** | local | gap vs local |
-|---|---|---|---|---|
-| **Brier ALC** | 0.18817 | **0.0113** | 0.17540 | +0.0128 (1.1 σ) |
-| B₀ | 0.27757 | 0.0224 | 0.21634 | **+0.0612 (2.7 σ)** |
-| B₁ | 0.21707 | 0.0235 | 0.20171 | +0.0154 (0.7 σ) |
-| B₃ | 0.18521 | 0.0159 | 0.18436 | +0.0008 (0.1 σ) |
-| B₇ | 0.16484 | 0.0112 | 0.16570 | −0.0009 (−0.1 σ) |
-| B₁₅ | 0.15746 | 0.0125 | 0.15042 | +0.0070 (0.6 σ) |
-| B₃₁ | 0.15500 | 0.0107 | 0.13330 | +0.0217 (2.0 σ) |
+| | mean | SD, one draw | **SE of mean** | local | gap | runs above local |
+|---|---|---|---|---|---|---|
+| **Brier ALC** | 0.18817 | 0.0113 | **0.0038** | 0.17540 | +0.0128 | 8 / 9 |
+| B₀ | 0.27757 | 0.0224 | 0.0075 | 0.21634 | +0.0612 | **9 / 9** |
+| B₁ | 0.21707 | 0.0235 | 0.0078 | 0.20171 | +0.0154 | 6 / 9 |
+| B₃ | 0.18521 | 0.0159 | 0.0053 | 0.18436 | +0.0008 | 5 / 9 |
+| B₇ | 0.16484 | 0.0112 | 0.0037 | 0.16570 | −0.0009 | 5 / 9 |
+| B₁₅ | 0.15746 | 0.0125 | 0.0042 | 0.15042 | +0.0070 | 7 / 9 |
+| B₃₁ | 0.15500 | 0.0107 | 0.0036 | 0.13330 | +0.0217 | **9 / 9** |
 
 **The measurement noise is the headline result.** A single formative score has
 a standard deviation of about **0.011** on ALC and 0.011–0.023 per budget. The
 nine runs span 0.1685 to 0.2062, a range of 0.0377 — **3.3 SD between two
-evaluations of the same bytes.** What the evidence does and does not support:
+evaluations of the same bytes.** That is what one formative score is worth, and
+it is the number a participant reading their own leaderboard entry needs.
 
-1. **The live result is slightly worse than the local estimate, and the gap is
-   not significant — less so the more we measure.** It read 1.8 SD at five
-   runs and 1.1 SD at nine, because the four most recent draws all came in
-   below the earlier mean. Direction consistent, magnitude not established.
-2. **Only the zero-label budget clearly survives the noise.** B₀ is +0.061
-   above local at 2.7 SD and is above it in all nine runs. **B₁ did not
-   survive**: it read 1.7 SD at three runs, 1.8 at five, and 0.7 at nine. The
-   earlier draft of this section said the shortfall was concentrated in "the
-   two lowest budgets"; with nine draws that is wrong, and it is at B₀ alone.
-   B₃ and B₇ are at 0.1 SD — indistinguishable. B₃₁ is at 2.0 SD, having read
-   1.6 at five; we do not claim it.
+**Two SDs, and they answer different questions.** The 0.011 above is the spread
+of a *single* draw. The precision of the *mean of nine* is 0.011/√9 = **0.0038**,
+and that is the right denominator for comparing this entry against anything.
+An earlier version of this section used the single-draw SD for those
+comparisons and so understated every one of them; the readings below are
+restated. Where the other side of a comparison is itself a single formative
+draw — another team's published score — the combined scale is
+√(0.0038² + 0.0113²) = 0.0119.
+
+1. **We cannot resolve the live-versus-local difference, and the live side is
+   not what limits us.** The gap is +0.0128. Against the live mean's own SE
+   that would be 3.4 SD, but the local figure is not a constant: it comes from
+   leave-one-benchmark-out over four benchmarks whose per-fold ALCs are 0.1509,
+   0.1943, 0.2728 and 0.1860, a standard error of **0.026** — seven times the
+   live one. Carrying both gives 0.0128 / 0.026 = **0.5 SD**: no resolvable
+   difference, and the binding uncertainty is our own four-benchmark estimate,
+   not the competition's sampling. Eight of nine draws land above the local
+   value, which is a weak signal on its own (sign test p = 0.04).
+2. **Two budgets separate cleanly from the local estimate, and they are the
+   two we expected least.** B₀ and B₃₁ are each above local in **all nine**
+   draws (sign test p = 0.004 two-sided, which does not depend on the local
+   standard error at all), at +0.061 and +0.022. B₁ does not: 6 of 9, p = 0.51.
+   An earlier version of this section said the shortfall was concentrated in
+   "the two lowest budgets" and then that it was at B₀ alone; with nine draws
+   and a test that does not lean on the local SE, it is **B₀ and B₃₁** — the
+   two end points, not the low end. B₃ and B₇ are at 5 of 9, p = 1.0.
 3. **We are behind the leading entry and that is the one competitive fact the
-   feedback establishes.** Against the best public entry at 0.117238 the mean
-   gap is +0.071, **6.3 SD**, and not one of the nine draws came close.
-   Against the organizers' own entry at 0.180113 the gap is +0.008, 0.7 SD,
-   with one of the nine below it — we cannot claim to be better or worse than
-   their baseline. The 27 % margin over the empirical-mean baseline in §5 is a
-   statement about that baseline method on local hold-out data and should not
-   be read as competitiveness.
+   feedback establishes.** The best public entry scores 0.117238. That is
+   itself a single formative draw, so the comparison carries both sides:
+   +0.071 against a combined 0.0119, **6.0 SD**, and not one of our nine draws
+   came close. Against the organizers' own entry at 0.180113 the gap is +0.008,
+   **0.7 SD**, with one of nine below it — we cannot claim to be better or
+   worse than their baseline. The 27 % margin over the empirical-mean baseline
+   in §5 is a statement about that baseline method on local hold-out data and
+   should not be read as competitiveness.
+
+   One caution about that leading score, which follows from the same argument
+   this section makes about our own. A Brier of 0.117238 is exactly μ(1−μ) at
+   μ = 0.1356, so it is also what a predictor with **no discriminative power at
+   all** scores on a pool whose base rate happens to be 0.136 — the pool-wide
+   rate across the four public benchmarks is 0.338, where that same zero-skill
+   predictor would score 0.224. A single formative score therefore cannot
+   separate a strong predictor from an easy draw, and we do not know the base
+   rate of the pairs drawn for that submission. What our own nine draws do
+   establish is the scale of draw-to-draw movement for one fixed predictor:
+   0.0113, with a minimum of 0.1685. On that scale 0.117238 sits 6.3 single-draw
+   SDs below our mean, so we are not going to explain it as luck — but neither
+   should it be read as a measured algorithmic advantage on a common sample.
+   The summative evaluation uses a common hidden subset, and that is the first
+   number from this competition that will support a comparison between teams.
 4. **σ̂ is not monotone in n, which is the reason we did not stop at a
    convenient value.** It ran 0.0132 (n=3), 0.0117, 0.0102, 0.0094, 0.0095,
    0.0091, 0.0113 (n=9): it dipped below the 0.01 threshold we had
@@ -343,10 +377,9 @@ evaluations of the same bytes.** What the evidence does and does not support:
    `Failed` after producing complete, internally consistent scoring outputs,
    and of the fourteen submissions of this artefact one has sat in `Submitting`
    for over two days and two more produced nothing in eleven hours. Restricting
-   the pool to the seven the platform calls `Finished` changes σ̂ to 0.0130 and
-   the ALC gap to 1.0 SD, leaves B₀ at 2.5 SD, and moves B₃₁ to 3.0 SD — one
-   more demonstration that at this sample size the per-budget readings are a
-   property of the draw.
+   the pool to the seven the platform calls `Finished` moves the single-draw
+   SD to 0.0130 and leaves every conclusion above intact, B₀ and B₃₁ still
+   above local in all seven.
 
 We pre-registered and tested three mechanism-level fixes for the zero-label
 prior: shrinking towards 0.5, estimating the target benchmark's success rate
@@ -385,13 +418,16 @@ producing output (one for over two days); we report the nine that scored.
 * **The live estimate is coarse too, and for a different reason.** Each
   formative evaluation draws eight or nine subject–benchmark pairs afresh, so a
   single live score carries a standard deviation of about 0.011 on ALC and
-  0.011–0.023 per budget (§5b, nine identical submissions). That is the same
-  order as every effect in this report we might want to act on, so the live
-  feedback supports only two statements: the gap to the leading entry is real
-  (6.3 SD) and the zero-label shortfall against our local estimate is real
-  (2.7 SD). Nothing else is resolved — not whether we are behind the
-  organizers' own entry (0.7 SD), and not any other per-budget reading. We
-  measured this only after drawing
+  0.011–0.023 per budget (§5b, nine identical submissions). The mean of nine is
+  far tighter, SE 0.0038, so the live side is not what limits the comparisons —
+  our own leave-one-benchmark-out estimate is, with a four-fold standard error
+  of 0.026. The live feedback supports three statements: the gap to the leading
+  entry is real (6.0 SD once that entry is also treated as a single draw), and
+  B₀ and B₃₁ exceed our local estimate in all nine draws (sign test p = 0.004,
+  which does not depend on the local standard error). Nothing else is resolved
+  — not the overall live-versus-local gap (0.5 SD once both uncertainties are
+  carried), not whether we are behind the organizers' own entry (0.7 SD), and
+  not any other per-budget reading. We measured this only after drawing
   conclusions from the first live score, which was a mistake in sequencing, not
   just in arithmetic.
 * **The pre-registered bootstrap is weak by construction.** Resampling four
@@ -408,7 +444,8 @@ producing output (one for over two days); we report the nine that scored.
   baseline any predictor could have chosen in advance. This is a statement about
   local hold-out data against a base-rate constant, and it does not carry over
   to the live setting: §5b finds live B₀ above the constant-0.5 value of 0.2500
-  in all nine runs, and above our own local B₀ by 2.7 SD. The zero-label prior
+  in all nine runs, and above our own local B₀ in all nine (p = 0.004). The
+  zero-label prior
   is the one place where local and live disagree beyond the noise.
   The weighted least squares for w_n described in §4.4 was aligned with the metric after that
   finding and changed the result by less than 1e-5 of ALC, confirming that the
