@@ -413,10 +413,19 @@ cold start. Gates were fixed before running; **all three failed** on
 leave-one-benchmark-out, each making B₀ and/or B₁ worse. The constant was fitted
 on exactly the four public benchmarks, so for them it is close to the best
 available prior rather than a wrong one. The live shortfall at B₀ — now the one
-per-budget effect that clears the noise — appears to involve a benchmark whose
-success rate lies outside the 0.148–0.475 range the public pool spans, which no
-local protocol can reproduce, so we record the hypothesis as **untested rather
-than refuted**. The shipped configuration is unchanged.
+per-budget effect that clears the noise — is consistent with test benchmarks
+whose success rate differs from that constant, but it does **not** identify one
+outside the public pool's range. For a fixed prediction p the Brier score is
+p² + q(1 − 2p) in the true success rate q, so at p̄ = 0.2816 a q of 0.421
+already produces the whole +0.061 gap, and 0.421 lies inside the 0.148–0.475
+the public pool spans. An earlier version of this section claimed the gap
+pointed outside that range; it does not, and a Brier difference can in any case
+reflect a change in irreducible task uncertainty rather than a miscalibrated
+prior. We record the hypothesis as **untested rather than refuted**, and record
+its ceiling with it: B₀ and B₃₁ are the two endpoint budgets, weighted 0.1 each,
+so closing both gaps entirely would move ALC by 0.0083 — a fifth of the
+pre-registered gate and a ninth of the distance to the leading entry. The
+shipped configuration is unchanged.
 
 A fourth candidate was pre-registered and run after those three, because an
 external review argued it was the one mechanism our earlier findings did not
@@ -452,11 +461,13 @@ in the public benchmark, which would inflate the gain.
 improve; and the single-pair fold degraded by 0.0105, twice its allowance. The
 mechanism is refuted and the shipped configuration is unchanged.
 
-The failure is informative in three ways. **The effect is real and simply far
+The failure is informative in three ways. **Whatever the effect is, it is far
 too small**: shuffling the text identity moves the pooled ALC by 0.00000 while
-the true text moves it by +0.00052, so that half-thousandth is a text relation
-rather than noise. It is two orders of magnitude short of what a different
-entry would need. **On fold 3 the fitted λ was exactly zero**: the three
+the true text moves it by +0.00052. One control run on one sample does not
+establish that the half-thousandth is a real population effect — the unweighted
+mean of the four per-fold differences is in fact −0.00192, with a standard error
+of 0.0029 — and nothing in the decision rests on settling which it is. Either
+way it is two orders of magnitude short of what a different entry would need. **On fold 3 the fitted λ was exactly zero**: the three
 training benchmarks for that fold supported no usable text-to-residual
 relation, and the method declined to act, which is the behaviour we wanted but
 also shows the mechanism does not hold across benchmarks. **The harm
@@ -488,13 +499,25 @@ from the two scored runs marked `Failed` in reading 5.
   private test benchmarks may well include domains with no representative here,
   and the across-benchmark priors that the method depends on are estimated from
   four points.
-* **The local estimate is coarse.** Leave-one-benchmark-out over four benchmarks
-  gives per-fold ALC of 0.151, 0.194, 0.273 and 0.186. Any difference smaller
-  than that spread — including the 0.004 gained by hyper-parameter tuning — is
-  not resolvable with this data. `swe_rebench` contributes a single
-  subject–benchmark pair, and on that fold the model (0.273) is worse than a
-  constant 0.5; a benchmark with one subject gives the offline calibration
-  nothing to learn from.
+* **The local estimate is coarse, but it does not bound what we think it
+  bounds.** Leave-one-benchmark-out over four benchmarks gives per-fold ALC of
+  0.151, 0.194, 0.273 and 0.186. That spread bounds how well we know the
+  *absolute* ALC — a four-fold standard error of 0.026 here, 0.041 in the
+  configuration §5b compares against. It does not bound a *paired* comparison.
+  A candidate and its control run on the same folds under the same seed share
+  the fold-difficulty term, which cancels in the difference: for §5b's fourth
+  candidate the four per-fold differences give a standard error of 0.0029,
+  fourteen times tighter. An earlier version of this report inferred from the
+  absolute spread that no difference below about 0.04 was resolvable here. That
+  inference was wrong, and we correct it rather than quietly drop it, because
+  the pre-registered gate of 0.045 was set as the improvement that would justify
+  replacing a frozen submission — not as a noise floor this data proves. What
+  four benchmarks genuinely do bound is transfer: they are all software
+  engineering / agent tasks, so an improvement measured precisely here still
+  says nothing about an unseen domain, and no number of extra responses or seeds
+  creates one. `swe_rebench` contributes a single subject–benchmark pair, and on
+  that fold the model (0.273) is worse than a constant 0.5; a benchmark with one
+  subject gives the offline calibration nothing to learn from.
 * **The live estimate is coarse too, and for a different reason.** Each
   formative evaluation draws eight or nine subject–benchmark pairs afresh, so a
   single live score carries a standard deviation of about 0.011 on ALC and
@@ -532,8 +555,9 @@ from the two scored runs marked `Failed` in reading 5.
   finding and changed the result by less than 1e-5 of ALC, confirming that the
   earlier gap was an artefact of the unfair baseline, not a weighting bug.
 * **Within-benchmark text propagation was tried and does not close the gap.**
-  §5b's fourth candidate measured it directly: a real but 0.0005-sized effect on
-  pooled ALC, against the 0.045 that would have justified a new submission. We
+  §5b's fourth candidate measured it directly: a 0.0005-sized effect on pooled
+  ALC, not separable from zero, against the 0.045 that would have justified a
+  new submission. We
   cannot rule out that a stronger text representation would do better — ours was
   constrained to hashed n-grams by the no-network submission environment, and
   the one time we narrowed that representation the measured signal fell by a
