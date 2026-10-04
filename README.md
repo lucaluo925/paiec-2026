@@ -60,15 +60,16 @@ protocol: **ALC 0.16515**. Per fold: 0.1509, 0.1943, 0.2728, 0.1860 — the wors
 is `swe_rebench`, which contributes exactly one pair.
 
 **Read that against the live noise before believing any of it.** The same
-artefact was submitted five times unchanged and scored 0.20624, 0.20098,
-0.18124, 0.18685, 0.19461 — mean 0.19398, **SD 0.0102**. Each formative
-evaluation draws only eight or nine subject–benchmark pairs afresh, so a single
-live score carries about that much noise on ALC and 0.014–0.023 per budget. Of
-everything the live feedback could be asked, it answers three things: the gap to
-the leading entry is real (7.6 SD), the zero-label shortfall against our own
-local estimate is real (3.0 SD), and nothing else is resolved — including
-whether this entry is behind the organizers' own (1.4 SD). §5b of the report has
-the full table.
+artefact was submitted **nine times unchanged** and the scores span 0.1685 to
+0.2062 — mean 0.18817, **SD 0.0113**, a range of 3.3 SD between two evaluations
+of the same bytes. Each formative evaluation draws only eight or nine
+subject–benchmark pairs afresh, which is where that comes from. Of everything
+the live feedback could be asked, it answers two things: the gap to the leading
+entry is real (6.3 SD) and the zero-label shortfall against our own local
+estimate is real (2.7 SD, above local in all nine). Nothing else is resolved —
+not whether this entry is behind the organizers' own (0.7 SD), and not any
+other per-budget reading. §5b of the report has the full table and the σ̂
+trajectory, which is not monotone in n.
 
 ## Reproduce
 

@@ -30,12 +30,12 @@ depend on having met the model before: on the 27 pairs whose identity
 calibration never saw, ALC is 0.18424 against 0.24960.
 
 Two negative results are reported as fully as the positive one. First, the
-competition's formative feedback is far noisier than it appears: five
-byte-identical submissions of the same artefact scored 0.20624, 0.20098,
-0.18124, 0.18685 and 0.19461 — a standard deviation of **0.0102** on ALC and
-0.014–0.023 per budget, because each evaluation redraws only eight or nine
-subject–benchmark pairs. Of everything that feedback could be asked, only three
-statements survive it, and we state which. Second, three pre-registered
+competition's formative feedback is far noisier than it appears: nine
+byte-identical submissions of the same artefact span 0.1685 to 0.2062 — a
+standard deviation of **0.011** on ALC and 0.011–0.023 per budget, a range of
+3.3 SD between two evaluations of the same file, because each evaluation
+redraws only eight or nine subject–benchmark pairs. Of everything that feedback
+could be asked, only two statements survive it, and we state which. Second, three pre-registered
 mechanism-level fixes for the zero-label prior — the one budget where the live
 result clearly exceeds our local estimate — were all falsified on
 leave-one-benchmark-out, and the shipped configuration was left unchanged. We
@@ -282,96 +282,71 @@ acquisition A/B: `results/acquisition_ab.md`; data survey:
 ## 5b. Results (live, Codabench formative feedback)
 
 The shipped artefact (`dist/paiec_irt.zip`, sha256 `98555787…2cfe0f`, 15,436
-bytes) was submitted **five times unchanged**, three on 2026-10-01 (955485,
-955728, 955767) and two on 2026-10-02 (957572, 957580). The rules state that
-*"each formative evaluation uses a newly sampled subset of the hidden test
-data, capped at 1,000 unique subject–item pairs"*, so the five runs differ only
-in which subject–benchmark pairs were drawn. We report them as a repeated
-measurement, because a single live score turns out to be far noisier than we
-expected, and the noise is the main thing we learned from them.
+bytes) was submitted **nine times unchanged** between 2026-10-01 and 2026-10-03.
+Every one of the nine was verified to be the same file: the uploaded bytes were
+re-downloaded from the platform and hashed, and all nine give the same sha256.
+The rules state that *"each formative evaluation uses a newly sampled subset of
+the hidden test data, capped at 1,000 unique subject–item pairs"*, so the nine
+runs differ only in which subject–benchmark pairs were drawn. We report them as
+a repeated measurement, because a single live score turns out to be far noisier
+than we expected, and that is the main thing they taught us.
 
-| | 955485 | 955728 | 955767 | 957572 | 957580 | mean | **SD** | local | gap vs local |
-|---|---|---|---|---|---|---|---|---|---|
-| **Brier ALC** | 0.20624 | 0.20098 | 0.18124 | 0.18685 | 0.19461 | 0.19398 | **0.0102** | 0.17540 | +0.0186 (1.8 σ) |
-| B₀ | 0.30845 | 0.27314 | 0.25431 | 0.30584 | 0.28153 | 0.28465 | 0.0228 | 0.21634 | **+0.0683 (3.0 σ)** |
-| B₁ | 0.25933 | 0.22918 | 0.22100 | 0.24012 | 0.21610 | 0.23315 | 0.0172 | 0.20171 | +0.0314 (1.8 σ) |
-| B₃ | 0.19287 | 0.20820 | 0.17058 | 0.20076 | 0.19303 | 0.19309 | 0.0141 | 0.18436 | +0.0087 (0.6 σ) |
-| B₇ | 0.17314 | 0.17904 | 0.15904 | 0.14204 | 0.17071 | 0.16479 | 0.0147 | 0.16570 | −0.0009 (−0.1 σ) |
-| B₁₅ | 0.16742 | 0.17175 | 0.15398 | 0.13154 | 0.16892 | 0.15872 | 0.0167 | 0.15042 | +0.0083 (0.5 σ) |
-| B₃₁ | 0.16840 | 0.16031 | 0.14893 | 0.13378 | 0.16701 | 0.15569 | 0.0145 | 0.13330 | +0.0224 (1.6 σ) |
-| ECE | 0.16324 | 0.13985 | 0.13641 | 0.19109 | 0.14631 | 0.15538 | 0.0225 | — | — |
+The nine Brier ALCs, in submission order: 0.20624, 0.20098, 0.18124, 0.18685,
+0.19461, 0.18850, 0.18203, 0.18458, 0.16850. Each run drew eight or nine
+subject–benchmark pairs, and in every one the unweighted mean of the per-pair
+ALCs reproduces the reported total to six decimals — nine independent
+confirmations that the official aggregation is an equal-weight mean over pairs.
 
-Each run drew 8 or 9 subject–benchmark pairs (8, 8, 8, 9, 9), and in every one
-the unweighted mean of the per-pair ALCs reproduces the reported total to six
-decimals, confirming that the official aggregation is an equal-weight mean over
-pairs. Run 3's eight pairs share no subject with run 1's. The sampled subjects —
-and, as runs 4 and 5 show, the number of them — are where the variance comes
-from: with eight or nine pairs per run, the identity of the draw dominates.
+| | mean | **SD** | local | gap vs local |
+|---|---|---|---|---|
+| **Brier ALC** | 0.18817 | **0.0113** | 0.17540 | +0.0128 (1.1 σ) |
+| B₀ | 0.27757 | 0.0224 | 0.21634 | **+0.0612 (2.7 σ)** |
+| B₁ | 0.21707 | 0.0235 | 0.20171 | +0.0154 (0.7 σ) |
+| B₃ | 0.18521 | 0.0159 | 0.18436 | +0.0008 (0.1 σ) |
+| B₇ | 0.16484 | 0.0112 | 0.16570 | −0.0009 (−0.1 σ) |
+| B₁₅ | 0.15746 | 0.0125 | 0.15042 | +0.0070 (0.6 σ) |
+| B₃₁ | 0.15500 | 0.0107 | 0.13330 | +0.0217 (2.0 σ) |
 
 **The measurement noise is the headline result.** A single formative score has
-a standard deviation of about **0.010** on ALC, **0.014–0.023** per budget, and
-**0.022** on ECE. The spread across five identical submissions is 0.0250,
-2.5 SD. This is larger than most of the differences one would want to act on.
-What the evidence does and does not support:
+a standard deviation of about **0.011** on ALC and 0.011–0.023 per budget. The
+nine runs span 0.1685 to 0.2062, a range of 0.0377 — **3.3 SD between two
+evaluations of the same bytes.** What the evidence does and does not support:
 
-1. **The live result is worse than the local estimate, but not significantly
-   so.** The mean gap is +0.019 on ALC, 1.8 SD. All five runs lie above the
-   local estimate, so the direction is consistent across every draw; the
-   magnitude is not established.
-2. **Only the zero-label budget survives the noise.** B₀ is +0.068 above local
-   at **3.0 SD**, consistent in all five runs, and it is the one per-budget
-   reading that strengthened as runs were added (2.3 σ at n=3, 2.6 σ at n=4,
-   3.0 σ at n=5). B₁ did not: it was 1.7 σ at n=3 and is 1.8 σ now, with the
-   fifth run's 0.2161 nearly level with the local 0.2017. **The shortfall is at
-   the zero-label prior specifically, not at "the low budgets" generally.**
-3. **The middle budgets are indistinguishable, and we can show it rather than
-   assert it.** B₇ read +0.0047 (worse than local) at n=3, flipped sign to
-   −0.0024 at n=4, and sits at −0.0009 (−0.1 SD) at n=5. **One additional draw
-   reversed the direction of a per-budget conclusion.** B₃ and B₁₅ are likewise
-   within 0.6 SD. Any statement about an individual budget other than B₀ is
-   reading the draw, not the method.
-4. **At zero labels the method is at best level with predicting 0.5.** B₀ was
-   above the constant-0.5 value of 0.2500 in all five runs (minimum 0.2543),
-   but the mean margin is +0.035, only 1.5 SD, and the smallest is 0.2 SD. We
-   report this as a consistent direction rather than a confirmed deficit.
-5. **Leaderboard position is not a stable quantity here, but the gap to the
-   leader is.** The five scores span 0.1812–0.2062, a range that covered
-   roughly four places on the 21-entry public table at the time of measurement,
-   so we do not quote a rank. Against the organisers' own entry at 0.180113 our
-   mean is +0.014 (1.4 SD) — worse in all five runs but not significantly so,
-   the closest run being only 0.0011 above it. Against the best entry at
-   0.117238 the gap is +0.077, **7.6 SD**: that one is established. The 27 %
-   margin over the empirical-mean baseline in §5 is a statement about that
-   baseline method on local hold-out data and should not be read as
-   competitiveness.
-
-Two further remarks on procedure. First, the noise calibration should have
-been run before any inference was drawn from a live score, not after. Our first
-live number was used to diagnose a deficit, propose three fixes and revise
-protocol conclusions, all before we knew its standard deviation was 0.010 —
-with hindsight that first "finding" was under 3 SD and should have been held.
-Second, σ̂ itself is estimated from five points and carries roughly 35 %
-relative error, so it sits close to the 0.01 threshold we pre-registered for
-discounting single-score inferences. We have not spent further submissions
-trying to resolve which side of that threshold it falls on: at this magnitude
-the noise is of the same order as every effect we would act on, and the third
-decimal of σ̂ does not change that.
-
-One of the five runs (957572) was later marked **Failed** by the platform,
-having already produced a complete scoring output whose nine per-pair ALCs
-average to the reported 0.186854 to six decimals. We keep it: the measurement
-exists and was checked, and the platform's terminal states on this competition
-are demonstrably unreliable — of the ten submissions of this artefact, two
-failed outright, one has been stuck in `Submitting` for over two days and two
-more produced nothing in eleven hours. Dropping it is nevertheless worth
-reporting, because of what it does. The headline is unmoved: σ(ALC) goes from
-0.0102 to 0.0108, the ALC gap from 1.8 to 1.9 SD, B₀ from 3.0 to 2.8 SD — both
-statements this report rests on survive either way. But B₃₁ moves from 1.6 SD
-to **3.1 SD**, B₁₅ from 0.5 to 1.9, and B₇ from −0.1 to +0.6. **Removing one
-draw out of five turns one per-budget reading from "indistinguishable" into a
-three-sigma effect.** That is the clearest statement of this section we can
-make: at this sample size the per-budget numbers are a property of the draw,
-and only B₀ and the total are worth quoting.
+1. **The live result is slightly worse than the local estimate, and the gap is
+   not significant — less so the more we measure.** It read 1.8 SD at five
+   runs and 1.1 SD at nine, because the four most recent draws all came in
+   below the earlier mean. Direction consistent, magnitude not established.
+2. **Only the zero-label budget clearly survives the noise.** B₀ is +0.061
+   above local at 2.7 SD and is above it in all nine runs. **B₁ did not
+   survive**: it read 1.7 SD at three runs, 1.8 at five, and 0.7 at nine. The
+   earlier draft of this section said the shortfall was concentrated in "the
+   two lowest budgets"; with nine draws that is wrong, and it is at B₀ alone.
+   B₃ and B₇ are at 0.1 SD — indistinguishable. B₃₁ is at 2.0 SD, having read
+   1.6 at five; we do not claim it.
+3. **We are behind the leading entry and that is the one competitive fact the
+   feedback establishes.** Against the best public entry at 0.117238 the mean
+   gap is +0.071, **6.3 SD**, and not one of the nine draws came close.
+   Against the organizers' own entry at 0.180113 the gap is +0.008, 0.7 SD,
+   with one of the nine below it — we cannot claim to be better or worse than
+   their baseline. The 27 % margin over the empirical-mean baseline in §5 is a
+   statement about that baseline method on local hold-out data and should not
+   be read as competitiveness.
+4. **σ̂ is not monotone in n, which is the reason we did not stop at a
+   convenient value.** It ran 0.0132 (n=3), 0.0117, 0.0102, 0.0094, 0.0095,
+   0.0091, 0.0113 (n=9): it dipped below the 0.01 threshold we had
+   pre-registered for discounting single-score inferences and came back above
+   it when the ninth draw landed at 0.1685. Had we stopped at n=6 the
+   pre-registered discount would have lifted on an artefact of sampling. The
+   threshold is met at n=9, but the lesson is the shape of that sequence, not
+   which side of 0.01 it finishes on.
+5. **Platform status is not a reliable filter.** Two of the nine were marked
+   `Failed` after producing complete, internally consistent scoring outputs,
+   and of the fourteen submissions of this artefact one has sat in `Submitting`
+   for over two days and two more produced nothing in eleven hours. Restricting
+   the pool to the seven the platform calls `Finished` changes σ̂ to 0.0130 and
+   the ALC gap to 1.0 SD, leaves B₀ at 2.5 SD, and moves B₃₁ to 3.0 SD — one
+   more demonstration that at this sample size the per-budget readings are a
+   property of the draw.
 
 We pre-registered and tested three mechanism-level fixes for the zero-label
 prior: shrinking towards 0.5, estimating the target benchmark's success rate
@@ -389,9 +364,9 @@ than refuted**. The shipped configuration is unchanged.
 evaluation resamples on every submission and the summative evaluation uses a
 separate common subset, so selecting on it would be selecting on noise. All
 five runs above were spent on measuring that noise, not on choosing anything.
-Of the ten submissions of this artefact, two failed outright on the platform
-and three have remained queued without producing output (one for over 33
-hours); we report the five that scored.
+Of the fourteen submissions of this artefact, nine produced a score, two
+failed outright on the platform and three have remained queued without
+producing output (one for over two days); we report the nine that scored.
 
 ## 6. Limitations
 
@@ -409,13 +384,14 @@ hours); we report the five that scored.
   nothing to learn from.
 * **The live estimate is coarse too, and for a different reason.** Each
   formative evaluation draws eight or nine subject–benchmark pairs afresh, so a
-  single live score carries a standard deviation of about 0.010 on ALC and
-  0.014–0.023 per budget (§5b, five identical submissions). That is the same
+  single live score carries a standard deviation of about 0.011 on ALC and
+  0.011–0.023 per budget (§5b, nine identical submissions). That is the same
   order as every effect in this report we might want to act on, so the live
-  feedback supports only three statements: the gap to the leading entry is real
-  (7.6 SD), the zero-label shortfall against our local estimate is real
-  (3.0 SD), and nothing else is resolved — including whether we are behind the
-  organizers' own entry (1.4 SD). We measured this only after drawing
+  feedback supports only two statements: the gap to the leading entry is real
+  (6.3 SD) and the zero-label shortfall against our local estimate is real
+  (2.7 SD). Nothing else is resolved — not whether we are behind the
+  organizers' own entry (0.7 SD), and not any other per-budget reading. We
+  measured this only after drawing
   conclusions from the first live score, which was a mistake in sequencing, not
   just in arithmetic.
 * **The pre-registered bootstrap is weak by construction.** Resampling four
@@ -432,7 +408,7 @@ hours); we report the five that scored.
   baseline any predictor could have chosen in advance. This is a statement about
   local hold-out data against a base-rate constant, and it does not carry over
   to the live setting: §5b finds live B₀ above the constant-0.5 value of 0.2500
-  in all five runs, and above our own local B₀ by 3.0 SD. The zero-label prior
+  in all nine runs, and above our own local B₀ by 2.7 SD. The zero-label prior
   is the one place where local and live disagree beyond the noise.
   The weighted least squares for w_n described in §4.4 was aligned with the metric after that
   finding and changed the result by less than 1e-5 of ALC, confirming that the
