@@ -35,8 +35,8 @@ byte-identical submissions of the same artefact span 0.1685 to 0.2062 — a
 standard deviation of **0.011** on ALC and 0.011–0.023 per budget, a range of
 3.3 SD between two evaluations of the same file, because each evaluation
 redraws only eight or nine subject–benchmark pairs. Of everything that feedback
-could be asked, three statements survive it: the gap to the leading entry, a
-shortfall against our local estimate at B₀, and the same at B₃₁. We state what
+could be asked, three statements survive it: (i) the gap to the leading entry;
+(ii) B₀ above our local estimate; and (iii) B₃₁ above our local estimate. We state what
 does not survive it as well. Second, four pre-registered
 mechanism-level candidates were falsified on leave-one-benchmark-out — three
 aimed at the zero-label prior, and a fourth, text-residual propagation inside
@@ -149,9 +149,10 @@ never the Codabench leaderboard.
   and is safe under threads; process-level parallelism only re-creates state.
   The caps we pass locally (≤ 200 subjects per benchmark, ≤ 200 evaluation
   items per pair, ≤ 800 streamed items per pair) are ours, not the rules'; at
-  these values none of them binds on this corpus, so the reported numbers use
-  the whole public dataset. The rules' own cap — 1 000 unique subject–item
-  pairs — applies to formative feedback runs only.
+  these values none of them binds on this corpus, so the numbers in §5 use the
+  whole public dataset. §5b's local column is a smaller configuration, at the
+  harness's default caps, and says so where it is used. The rules' own cap —
+  1 000 unique subject–item pairs — applies to formative feedback runs only.
 
 ## 4. Method
 
@@ -274,6 +275,17 @@ met the model before.
 Per fold the ALC is 0.1509, 0.1943, 0.2728 and 0.1860; the worst fold is
 `swe_rebench`, which contributes exactly one pair.
 
+These four numbers do not average to the headline. The headline is a mean over
+pairs, and the four folds hold 82, 31, 1 and 33 of the 147 pairs:
+(82·0.1509 + 31·0.1943 + 1·0.2728 + 33·0.1860) / 147 = 0.16876, which is
+0.16875 up to the rounding of the per-fold values. The unweighted mean of the
+four folds is 0.201, and the spread of these four points, unweighted, is a
+standard error of 0.026. §5b and §6 use the same unweighted statistic, but
+computed on the folds of the configuration §5b compares against (0.041; see
+§5b, reading 1). The two aggregations answer different
+questions (how well the model does per pair, and how much that changes from one
+benchmark to the next) and should not be compared with each other.
+
 Calibration improves with labels: expected calibration error
 0.122 → 0.072 → 0.058 → 0.023 → 0.027 → 0.016 across the six budgets
 (`figures/calibration.pdf`). At zero labels the predictor is visibly
@@ -311,6 +323,14 @@ confirmations that the official aggregation is an equal-weight mean over pairs.
 | B₁₅ | 0.15746 | 0.0125 | 0.0042 | 0.15042 | +0.0070 | 7 / 9 |
 | B₃₁ | 0.15500 | 0.0107 | 0.0036 | 0.13330 | +0.0217 | **9 / 9** |
 
+The local column is not the §5 configuration. It is the shipped configuration
+(tuned `hyper_scale` and shrinkage weights from `results/tuned_hyper_full.json`)
+under leave-one-benchmark-out with the harness's default sampling caps
+(`--max-subjects 40 --max-eval 60 --max-stream 400`): 105 pairs and 5,964 targets,
+`global` label scope, per-pair split. It is reproduced to the printed digits by
+`python -m eval.run_cv --data data/raw --variants irt --tuned
+results/tuned_hyper_full.json`.
+
 **The measurement noise is the headline result.** A single formative score has
 a standard deviation of about **0.011** on ALC and 0.011–0.023 per budget. The
 nine runs span 0.1685 to 0.2062, a range of 0.0377 — **3.3 SD between two
@@ -329,9 +349,10 @@ draw — another team's published score — the combined scale is
 1. **We cannot resolve the live-versus-local difference, and the live side is
    not what limits us.** The gap is +0.0128. Against the live mean's own SE
    that would be 3.4 SD, but the local figure is not a constant: it comes from
-   leave-one-benchmark-out over four benchmarks whose per-fold ALCs are 0.1509,
-   0.1943, 0.2728 and 0.1860, a standard error of **0.026** — seven times the
-   live one. Carrying both gives 0.0128 / 0.026 = **0.5 SD**: no resolvable
+   leave-one-benchmark-out over four benchmarks whose per-fold ALCs, in the
+   configuration of the local column, are 0.1556, 0.1867, 0.3361 and 0.1839, a
+   standard error of **0.041** — about eleven times the live one. Carrying both
+   gives 0.0128 / 0.041 = **0.3 SD**: no resolvable
    difference, and the binding uncertainty is our own four-benchmark estimate,
    not the competition's sampling. Eight of nine draws land above the local
    value, which is a weak signal on its own (sign test p = 0.04).
@@ -378,7 +399,9 @@ draw — another team's published score — the combined scale is
 5. **Platform status is not a reliable filter.** Two of the nine were marked
    `Failed` after producing complete, internally consistent scoring outputs,
    and of the fourteen submissions of this artefact one has sat in `Submitting`
-   for over two days and two more produced nothing in eleven hours. Restricting
+   for over two days and two more produced nothing in eleven hours. These two `Failed` runs are among the nine
+   that scored; they are not the two that failed outright, which are counted
+   separately at the end of this section. Restricting
    the pool to the seven the platform calls `Finished` moves the single-draw
    SD to 0.0130 and leaves every conclusion above intact, B₀ and B₃₁ still
    above local in all seven.
@@ -408,7 +431,8 @@ zero-mean correction on the logit, a single kernel strength fitted in closed
 form on the training benchmarks with no validation search, and a correction
 that is **strictly zero** when the evaluated benchmark has no labels yet.
 
-Four gates were fixed before running: ΔALC ≥ 0.045; all three multi-pair folds
+Four gates were fixed before running, in `docs/PREREG_text_residual.md`, which
+was written before any code for this candidate was run: ΔALC ≥ 0.045; all three multi-pair folds
 improve; the single-pair fold degrades by at most 0.005; and a control that
 shuffles the text identity of the support items moves ALC by at most 0.002.
 Cross-subject evidence was replayed at the cohort size the live runs actually
@@ -431,7 +455,7 @@ mechanism is refuted and the shipped configuration is unchanged.
 The failure is informative in three ways. **The effect is real and simply far
 too small**: shuffling the text identity moves the pooled ALC by 0.00000 while
 the true text moves it by +0.00052, so that half-thousandth is a text relation
-rather than noise — it is two orders of magnitude short of what a different
+rather than noise. It is two orders of magnitude short of what a different
 entry would need. **On fold 3 the fitted λ was exactly zero**: the three
 training benchmarks for that fold supported no usable text-to-residual
 relation, and the method declined to act, which is the behaviour we wanted but
@@ -450,10 +474,12 @@ pre-registration required anyway.
 **No model choice in this report was made using live feedback.** Formative
 evaluation resamples on every submission and the summative evaluation uses a
 separate common subset, so selecting on it would be selecting on noise. All
-five runs above were spent on measuring that noise, not on choosing anything.
+nine scored runs above were spent on measuring that noise, not on choosing anything.
 Of the fourteen submissions of this artefact, nine produced a score, two
 failed outright on the platform and three have remained queued without
 producing output (one for over two days); we report the nine that scored.
+The two that failed outright produced no score at all, and are a different pair
+from the two scored runs marked `Failed` in reading 5.
 
 ## 6. Limitations
 
@@ -473,13 +499,14 @@ producing output (one for over two days); we report the nine that scored.
   formative evaluation draws eight or nine subject–benchmark pairs afresh, so a
   single live score carries a standard deviation of about 0.011 on ALC and
   0.011–0.023 per budget (§5b, nine identical submissions). The mean of nine is
-  far tighter, SE 0.0038, so the live side is not what limits the comparisons —
+  far tighter, SE 0.0038, so the live side is not what limits the comparisons;
   our own leave-one-benchmark-out estimate is, with a four-fold standard error
-  of 0.026. The live feedback supports three statements: the gap to the leading
-  entry is real (6.0 SD once that entry is also treated as a single draw), and
-  B₀ and B₃₁ exceed our local estimate in all nine draws (sign test p = 0.004,
-  which does not depend on the local standard error). Nothing else is resolved
-  — not the overall live-versus-local gap (0.5 SD once both uncertainties are
+  of 0.041. The live feedback supports three statements: (i) the gap to the leading
+  entry is real (6.0 SD once that entry is also treated as a single draw);
+  (ii) B₀ exceeds our local estimate in all nine draws; and (iii) so does B₃₁
+  (sign test p = 0.004 for each, which does not depend on the local standard
+  error). Nothing else is resolved
+  — not the overall live-versus-local gap (0.3 SD once both uncertainties are
   carried), not whether we are behind the organizers' own entry (0.7 SD), and
   not any other per-budget reading. We measured this only after drawing
   conclusions from the first live score, which was a mistake in sequencing, not

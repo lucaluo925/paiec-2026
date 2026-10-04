@@ -17,3 +17,4 @@ docs/*
 # ...except the pre-registration, which the report cites as evidence that the
 # gates were fixed before the run.
 !docs/PREREG_text_residual.md
+.DS_Store
