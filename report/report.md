@@ -357,6 +357,22 @@ trying to resolve which side of that threshold it falls on: at this magnitude
 the noise is of the same order as every effect we would act on, and the third
 decimal of σ̂ does not change that.
 
+One of the five runs (957572) was later marked **Failed** by the platform,
+having already produced a complete scoring output whose nine per-pair ALCs
+average to the reported 0.186854 to six decimals. We keep it: the measurement
+exists and was checked, and the platform's terminal states on this competition
+are demonstrably unreliable — of the ten submissions of this artefact, two
+failed outright, one has been stuck in `Submitting` for over two days and two
+more produced nothing in eleven hours. Dropping it is nevertheless worth
+reporting, because of what it does. The headline is unmoved: σ(ALC) goes from
+0.0102 to 0.0108, the ALC gap from 1.8 to 1.9 SD, B₀ from 3.0 to 2.8 SD — both
+statements this report rests on survive either way. But B₃₁ moves from 1.6 SD
+to **3.1 SD**, B₁₅ from 0.5 to 1.9, and B₇ from −0.1 to +0.6. **Removing one
+draw out of five turns one per-budget reading from "indistinguishable" into a
+three-sigma effect.** That is the clearest statement of this section we can
+make: at this sample size the per-budget numbers are a property of the draw,
+and only B₀ and the total are worth quoting.
+
 We pre-registered and tested three mechanism-level fixes for the zero-label
 prior: shrinking towards 0.5, estimating the target benchmark's success rate
 online with a 0.5 cold start, and the same with the original constant as the
