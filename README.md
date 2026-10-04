@@ -126,12 +126,20 @@ the exact command sequence. No data is included in this repository.
   `tools/build_submission_zip.py` run against this tree produces sha256
   `21a9df6f…79743a8a`, not the scored `98555787…2cfe0f` — same five files, one
   of them carrying the inert branch. Report §7 spells this out.
-* **Three pre-registered fixes for the zero-label prior all failed.** Shrinking
-  towards 0.5; estimating the target benchmark's success rate online with a 0.5
-  cold start; the same with the fitted constant as cold start. Gates were fixed
-  before running, and each made B₀ and/or B₁ worse on leave-one-benchmark-out.
-  The shipped configuration is unchanged. The code for them is in the repository
-  because a falsified candidate is a result.
+* **Four pre-registered candidates were falsified.** Three aimed at the
+  zero-label prior — shrinking towards 0.5; estimating the target benchmark's
+  success rate online with a 0.5 cold start; the same with the fitted constant
+  as cold start — and each made B₀ and/or B₁ worse on leave-one-benchmark-out.
+  The fourth was **text-residual propagation** (`eval/text_residual.py`): relate
+  a target item to the already-labelled items by the text of `item_content` and
+  carry their baseline residuals across, which needs no difficulty coefficient
+  to transfer between benchmarks. It cleared **one of four** pre-set gates —
+  pooled ΔALC +0.00052 against a required 0.045, no improvement on one fold, and
+  a 0.0105 degradation on the single-pair fold; only the shuffled-text control
+  passed, at exactly 0.00000. Gates and thresholds for all four were written
+  down before running (`docs/PREREG_text_residual.md` for the fourth). The
+  shipped configuration is unchanged and the code is in the repository, because
+  a falsified candidate is a result.
 * **The noise calibration was done in the wrong order.** The first live score was
   used to diagnose a deficit, propose those three candidates and revise protocol
   conclusions — all before measuring that a single live score has SD 0.010. With

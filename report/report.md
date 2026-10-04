@@ -37,10 +37,12 @@ standard deviation of **0.011** on ALC and 0.011–0.023 per budget, a range of
 redraws only eight or nine subject–benchmark pairs. Of everything that feedback
 could be asked, three statements survive it — the gap to the leading entry,
 and a shortfall against our local estimate at the two end budgets B₀ and B₃₁ —
-and we state what does not. Second, three pre-registered
-mechanism-level fixes for the zero-label prior — the one budget where the live
-result clearly exceeds our local estimate — were all falsified on
-leave-one-benchmark-out, and the shipped configuration was left unchanged. We
+and we state what does not. Second, four pre-registered
+mechanism-level candidates were falsified on leave-one-benchmark-out — three
+aimed at the zero-label prior, and a fourth, text-residual propagation inside
+the evaluated benchmark, which cleared one of its four pre-set gates and
+improved pooled ALC by 0.0005 against a required 0.045. The shipped
+configuration was left unchanged. We
 also record a sequencing error of our own: the noise calibration was run after,
 not before, the first live score had been used to draw conclusions.
 
@@ -393,6 +395,58 @@ success rate lies outside the 0.148–0.475 range the public pool spans, which n
 local protocol can reproduce, so we record the hypothesis as **untested rather
 than refuted**. The shipped configuration is unchanged.
 
+A fourth candidate was pre-registered and run after those three, because an
+external review argued it was the one mechanism our earlier findings did not
+already exclude. **Text-residual propagation**: inside an unseen benchmark, use
+the text of `item_content` to relate a target item to the items already
+labelled, and carry their baseline residuals across. The point is that it needs
+no difficulty coefficient to transfer between benchmarks — the transfer that
+§4.2 shows does not work — only a within-benchmark relation between text
+similarity and residual. Implementation was constrained to the submission
+environment: fixed word and character n-gram hashing, a fixed kernel, a
+zero-mean correction on the logit, a single kernel strength fitted in closed
+form on the training benchmarks with no validation search, and a correction
+that is **strictly zero** when the evaluated benchmark has no labels yet.
+
+Four gates were fixed before running: ΔALC ≥ 0.045; all three multi-pair folds
+improve; the single-pair fold degrades by at most 0.005; and a control that
+shuffles the text identity of the support items moves ALC by at most 0.002.
+Cross-subject evidence was replayed at the cohort size the live runs actually
+expose — eight or nine pairs — rather than handing the predictor every subject
+in the public benchmark, which would inflate the gain.
+
+| fold | baseline | text residual | shuffled control | ΔALC | λ |
+|---|---|---|---|---|---|
+| 0 (9 pairs) | 0.16012 | 0.15868 | 0.16009 | +0.00144 | 0.392 |
+| 1 (9 pairs) | 0.21105 | 0.20972 | 0.21105 | +0.00133 | 0.422 |
+| 2 (1 pair, `swe_rebench`) | 0.32194 | 0.33239 | 0.32227 | **−0.01045** | 0.370 |
+| 3 (9 pairs) | 0.18481 | 0.18481 | 0.18481 | 0.00000 | **0.000** |
+| **pooled** | **0.19021** | **0.18969** | 0.19021 | **+0.00052** | — |
+
+**One gate of four.** Only the control passed, at exactly 0.00000. ΔALC is
++0.00052 against a required 0.045 — 1.2 % of the threshold; fold 3 did not
+improve; and the single-pair fold degraded by 0.0105, twice its allowance. The
+mechanism is refuted and the shipped configuration is unchanged.
+
+The failure is informative in three ways. **The effect is real and simply far
+too small**: shuffling the text identity moves the pooled ALC by 0.00000 while
+the true text moves it by +0.00052, so that half-thousandth is a text relation
+rather than noise — it is two orders of magnitude short of what a different
+entry would need. **On fold 3 the fitted λ was exactly zero**: the three
+training benchmarks for that fold supported no usable text-to-residual
+relation, and the method declined to act, which is the behaviour we wanted but
+also shows the mechanism does not hold across benchmarks. **The harm
+concentrated on the one-pair fold**, the shape the heterogeneity analysis
+warned about — a method that helps most benchmarks and hurts one.
+
+One implementation note that cost us a wrong reading before we caught it. We
+briefly narrowed the hash width from 4096 to 512 to save computation, and the
+λ fitted on the training benchmarks fell from 0.392 to 0.054. **The width of
+the text representation is not a neutral implementation constant**; a narrow
+hash erases the signal being measured. We restored 4096 and bought the
+computation back by shrinking the replayed cohort instead — which the
+pre-registration required anyway.
+
 **No model choice in this report was made using live feedback.** Formative
 evaluation resamples on every submission and the summative evaluation uses a
 separate common subset, so selecting on it would be selecting on noise. All
@@ -450,6 +504,15 @@ producing output (one for over two days); we report the nine that scored.
   The weighted least squares for w_n described in §4.4 was aligned with the metric after that
   finding and changed the result by less than 1e-5 of ALC, confirming that the
   earlier gap was an artefact of the unfair baseline, not a weighting bug.
+* **Within-benchmark text propagation was tried and does not close the gap.**
+  §5b's fourth candidate measured it directly: a real but 0.0005-sized effect on
+  pooled ALC, against the 0.045 that would have justified a new submission. We
+  cannot rule out that a stronger text representation would do better — ours was
+  constrained to hashed n-grams by the no-network submission environment, and
+  the one time we narrowed that representation the measured signal fell by a
+  factor of seven, which suggests the representation matters more than the
+  mechanism. What we can say is that the version runnable inside this
+  competition's constraints does not.
 * **`reasoning_effort` has no support.** The configuration-effect machinery for
   it is inert on this corpus; if the private subjects carry that field, its
   effect is untrained.

@@ -80,7 +80,7 @@ class Variant:
     acquisition: str | None = None  # None -> default random policy
 
 
-def make_predictor(variant: Variant, params: dict | None):
+def make_predictor(variant: Variant, params: dict | None, db=None, train_keys=None):
     if variant.kind == "const":
         return baselines.constant(0.5), None
     if variant.kind == "empirical_mean":
@@ -92,7 +92,26 @@ def make_predictor(variant: Variant, params: dict | None):
             import labeling_core
             acq = labeling_core.make_acquisition(engine, variant.acquisition)
         return engine.predict, acq
+    if variant.kind in ("irt_textres", "irt_textres_shuffle"):
+        # 预注册候选，docs/PREREG_text_residual.md。lam 只在训练 benchmark 上估。
+        from . import text_residual
+        cfg = deep_update(params, variant.patch or {})
+        lam = make_predictor._lam_cache.get(id(params))
+        if lam is None:
+            lam = text_residual.fit_lambda(
+                db, train_keys, cfg,
+                engine_factory=lambda: pirt_online.Engine(copy.deepcopy(cfg)))
+            make_predictor._lam_cache[id(params)] = lam
+            print(f"  [textres] lam fitted on training benchmarks only = {lam:.5f}")
+        engine = pirt_online.Engine(cfg)
+        ref = pirt_online.Engine(copy.deepcopy(cfg))   # pristine，只用来算离线残差
+        pred = text_residual.Predictor(
+            engine, lam, shuffle=variant.kind.endswith("shuffle"), seed=0, ref_engine=ref)
+        return pred, None
     raise ValueError(variant.kind)
+
+
+make_predictor._lam_cache = {}
 
 
 def pooled_metrics(chunks: list) -> dict:
@@ -162,6 +181,8 @@ def main(argv=None):
         "empirical_mean": Variant("empirical_mean", "empirical_mean", scope="pair"),
         "irt": Variant("irt", "irt"),
         "irt_pairscope": Variant("irt_pairscope", "irt", scope="pair"),
+        "irt_textres": Variant("irt_textres", "irt_textres"),
+        "irt_textres_shuffle": Variant("irt_textres_shuffle", "irt_textres_shuffle"),
     }
     variants = []
     extra = {}
@@ -196,7 +217,7 @@ def main(argv=None):
                                  max_subjects_per_benchmark=args.max_subjects, max_eval_per_pair=args.max_eval,
                                  max_stream_per_pair=args.max_stream, seed=args.seed)
             pairs = build_pairs(db, split.folds[f], cfg)
-            predict, acq = make_predictor(v, params)
+            predict, acq = make_predictor(v, params, db, split.train_keys(f))
             res = run_protocol(pairs, predict, acq, cfg)
             chunks[v.name].append((res.records, pairs, split.heldout_identities))
             print(f"  {v.name:<28} ALC {res.alc_pair_macro:.5f}  "
