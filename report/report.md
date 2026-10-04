@@ -35,9 +35,9 @@ byte-identical submissions of the same artefact span 0.1685 to 0.2062 — a
 standard deviation of **0.011** on ALC and 0.011–0.023 per budget, a range of
 3.3 SD between two evaluations of the same file, because each evaluation
 redraws only eight or nine subject–benchmark pairs. Of everything that feedback
-could be asked, three statements survive it — the gap to the leading entry,
-and a shortfall against our local estimate at the two end budgets B₀ and B₃₁ —
-and we state what does not. Second, four pre-registered
+could be asked, three statements survive it: the gap to the leading entry, a
+shortfall against our local estimate at B₀, and the same at B₃₁. We state what
+does not survive it as well. Second, four pre-registered
 mechanism-level candidates were falsified on leave-one-benchmark-out — three
 aimed at the zero-label prior, and a fourth, text-residual propagation inside
 the evaluated benchmark, which cleared one of its four pre-set gates and
@@ -557,10 +557,14 @@ ZIP builds are byte-identical to each other. The organizers'
 `--static-only` (re-checked before release).
 
 **The rebuilt ZIP does not have the same hash as the scored one, and this is
-expected.** The artefact that was scored is
-sha256 `98555787478009fc9e53b05a7a532912db37b716e24ed9abac121bac33c2fe0f`;
-running `tools/build_submission_zip.py` against the source as published gives
-sha256 `21a9df6f4323d94828280e8d6514c0579bb92b0f87b2ddc52371079279743a8a`.
+expected.** The artefact that was scored, and the artefact that
+`tools/build_submission_zip.py` produces from the source as published, are:
+
+```
+scored   sha256 98555787478009fc9e53b05a7a532912db37b716e24ed9abac121bac33c2fe0f
+rebuilt  sha256 21a9df6f4323d94828280e8d6514c0579bb92b0f87b2ddc52371079279743a8a
+```
+
 Four of the five packaged files are byte-identical; the difference is confined
 to `pirt_online.py`, which gained an inert `shrink_target == "bench"` branch
 while the three zero-label candidates of §5b were being tested after the
@@ -592,3 +596,28 @@ credentials and refuses parameters fitted on synthetic data.
   desktop app's agentic coding mode, to write the code and draft this report
   under the author's direction; all results were produced by the scripts in this
   repository.
+
+## 9. Artefacts and references
+
+Every external source this report relies on, with the version it was read at.
+No other source was consulted.
+
+1. Predictive AI Evaluation Competition, NeurIPS 2026 — task definition,
+   scoring rules and formative-evaluation policy.
+   `https://aimslab.stanford.edu/competition` (rules page, read 2026-10-03).
+2. `aims-foundations/measurement-db`, Hugging Face dataset, revision
+   `bc8204d811823da849c6686bf124d4ca9f82e4de` — the only training data used
+   (§2).
+3. `aims-foundations/paiec_baseline`, pinned at commit `82d330d` — the
+   organizers' preparation script, streaming client
+   (`tools/streaming_ingestion.py`, `streaming_alc_v1`), empirical-mean
+   baseline and `check_submission_zip.py`, all of which §3 reproduces or calls.
+4. This submission's code and results:
+   `https://github.com/lucaluo925/paiec-2026`. Within it: the pre-registration
+   of the fourth candidate (`docs/PREREG_text_residual.md`), the acquisition
+   A/B (`results/acquisition_ab.md`), the data survey
+   (`results/data_survey.md`), the code-review notes (`results/ocr_review*.md`)
+   and the figures (`figures/learning_curves.pdf`, `figures/calibration.pdf`).
+5. Codabench submission 955485, artefact `paiec_irt.zip` — the scored
+   artefact behind every number in §5b; its sha256 is the first of the two
+   printed in §7.
