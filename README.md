@@ -118,7 +118,10 @@ the exact command sequence. No data is included in this repository.
   `target` key, so the default `"const"` path runs and behaviour is unchanged —
   verified, not assumed: 300 randomized (subject, item, label-sequence) triples
   with 0–31 labels give bit-identical predictions from both versions. The other
-  four files in the zip are byte-identical to `submission/`.
+  four files in the zip are byte-identical to `submission/`. Consequently
+  `tools/build_submission_zip.py` run against this tree produces sha256
+  `21a9df6f…79743a8a`, not the scored `98555787…2cfe0f` — same five files, one
+  of them carrying the inert branch. Report §7 spells this out.
 * **Three pre-registered fixes for the zero-label prior all failed.** Shrinking
   towards 0.5; estimating the target benchmark's success rate online with a 0.5
   cold start; the same with the fitted constant as cold start. Gates were fixed

@@ -460,9 +460,25 @@ python $PAIEC_BASELINE_DIR/check_submission_zip.py dist/paiec_irt.zip
 Seeds are fixed (split seed 0, deterministic SHA-256 hashing). Verified on
 Python 3.11.16 with the locked dependency versions: two `run_cv` runs produce
 identical CSVs, two `train_final` runs produce identical `params.json`, and two
-ZIP builds are byte-identical
-(sha256 `98555787478009fc9e53b05a7a532912db37b716e24ed9abac121bac33c2fe0f`).
-The organizers' `check_submission_zip.py` passes without `--static-only`.
+ZIP builds are byte-identical to each other. The organizers'
+`check_submission_zip.py` passes on the shipped artefact without
+`--static-only` (re-checked before release).
+
+**The rebuilt ZIP does not have the same hash as the scored one, and this is
+expected.** The artefact that was scored is
+sha256 `98555787478009fc9e53b05a7a532912db37b716e24ed9abac121bac33c2fe0f`;
+running `tools/build_submission_zip.py` against the source as published gives
+sha256 `21a9df6f4323d94828280e8d6514c0579bb92b0f87b2ddc52371079279743a8a`.
+Four of the five packaged files are byte-identical; the difference is confined
+to `pirt_online.py`, which gained an inert `shrink_target == "bench"` branch
+while the three zero-label candidates of §5b were being tested after the
+artefact was built. The shipped `params.json` carries no `target` key, so the
+default `"const"` path runs and the two versions are not merely equivalent in
+principle: over 300 randomized (subject, item, label-sequence) triples with 0
+to 31 labels they return bit-identical predictions, with a maximum absolute
+difference of 0. We kept the falsified candidates in the source rather than
+stripping them, because a candidate that was pre-registered and refuted is a
+result, and deleting it would make the record of §5b unverifiable.
 Extracted into an empty directory and imported in a fresh process, the model
 predicts in single-digit microseconds per call (6.7 µs with numpy, 2.8 µs on the
 numpy-free fallback), which is negligible against the 8-hour run limit;
