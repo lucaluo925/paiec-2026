@@ -220,9 +220,11 @@ def main(argv=None):
             predict, acq = make_predictor(v, params, db, split.train_keys(f))
             res = run_protocol(pairs, predict, acq, cfg)
             chunks[v.name].append((res.records, pairs, split.heldout_identities))
+            dropped = getattr(predict, "dropped", 0)
             print(f"  {v.name:<28} ALC {res.alc_pair_macro:.5f}  "
                   + " ".join(f"B{b}={res.brier_pair_macro[b]:.4f}" for b in BUDGETS)
-                  + f"  ({res.seconds:.0f}s, {res.n_pairs} pairs, {res.n_targets} targets)")
+                  + f"  ({res.seconds:.0f}s, {res.n_pairs} pairs, {res.n_targets} targets)"
+                  + (f"  [!! dropped {dropped} labeled entries]" if dropped else ""))
 
     rows = []
     for v in variants:

@@ -12,8 +12,11 @@
 """
 import math
 import re
+import sys
 
 import numpy as np
+
+import pirt_online          # 身份口径必须与提交一致，见 TR-M2
 
 HASH_DIM = 4096          # 固定。曾试过降到 512 省算力，但训练集上估出的 lam 从 0.392
                          # 掉到 0.054 —— 哈希宽度不是中性的实现常数，窄哈希会把文本
@@ -116,6 +119,7 @@ class Predictor:
         self._by_bid = {}                          # bid -> ([vec], [residual])，增量追加
         self._stack = {}                           # bid -> (V, r_centered, count)
         self._seen = 0                             # 已消费的 labeled 条数
+        self.dropped = 0                           # 结构畸形、被跳过的 labeled 条数
 
     def _shuffle_key(self, item):
         if not self.shuffle:
@@ -126,7 +130,13 @@ class Predictor:
         return self._perm[k]
 
     def _residual(self, s_j, i_j, y):
-        key = (_item_text(i_j), str(i_j.get("item_features")), str(s_j.get("normalized_name")), int(y))
+        # TR-M2：旧键只用 (文本, features, normalized_name, y) —— 但同一个
+        # normalized_name 在不同 harness / reasoning_effort 下是**不同 subject**，
+        # 它们的离线残差会互相覆盖。这里直接复用提交里的身份函数，口径与
+        # pirt_online 自己的 subject 状态缓存完全一致（8 个字段），再加上
+        # benchmark_id，避免跨 benchmark 的同文本题目串味。
+        key = (pirt_online.subject_key(s_j), pirt_online.item_key(i_j),
+               str(i_j.get("benchmark_id")), int(y))
         r = self._res.get(key)
         if r is None:
             p = float((self.ref or self.engine).predict([s_j, i_j], []))
@@ -149,15 +159,23 @@ class Predictor:
             self._stack.clear()
         if n > self._seen:
             for entry in labeled[self._seen:n]:
+                # TR-M1：只对**解包**容错 —— 协议给的条目结构不合预期时跳过并计数。
+                # 特征化和残差计算故意放在 try 之外：那两步出错是本文件自己的 bug，
+                # 必须当场炸掉。原来一个大 try 把它们一起吞了，后果是支持集被悄悄
+                # 削小、ΔALC 随之变小，而测量结果里看不到任何痕迹。
                 try:
                     pair, y = entry[0], entry[1]
                     s_j, i_j = pair[0], pair[1]
                     b = i_j.get("benchmark_id")
-                    slot = self._by_bid.setdefault(b, ([], []))
-                    slot[0].append(self.cache.vec(i_j, self._shuffle_key(i_j)))
-                    slot[1].append(self._residual(s_j, i_j, y))
-                except Exception:
+                except (IndexError, KeyError, TypeError, AttributeError) as exc:
+                    self.dropped += 1
+                    if self.dropped == 1:
+                        print(f"[text_residual] 跳过畸形 labeled 条目: {exc!r}",
+                              file=sys.stderr)
                     continue
+                slot = self._by_bid.setdefault(b, ([], []))
+                slot[0].append(self.cache.vec(i_j, self._shuffle_key(i_j)))
+                slot[1].append(self._residual(s_j, i_j, y))
             self._seen = n
         slot = self._by_bid.get(bid)
         if slot is None or len(slot[0]) < MIN_SUPPORT:
