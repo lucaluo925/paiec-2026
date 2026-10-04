@@ -1,0 +1,26 @@
+% LaTeX header for report.md -> paiec_report.pdf.
+%
+% Build (run from this directory):
+%
+%   pandoc report.md -o paiec_report.pdf --pdf-engine=xelatex \
+%     -V geometry:margin=1in -V fontsize=10pt \
+%     -V mainfont="DejaVu Serif" -V monofont="DejaVu Sans Mono" \
+%     -H hdr.tex
+%
+\usepackage{etoolbox}
+
+% The per-budget and per-fold tables are wide; at 10pt they overrun the text
+% block.
+\AtBeginEnvironment{longtable}{\footnotesize}
+
+% Section 7 prints two 64-character sha256 values in a display block. At 10pt
+% those lines are wider than the text block and TeX cannot break them, so they
+% were silently clipped mid-hash in every build before 852b04a -- in the one
+% section that asks the reader to check exactly those hashes. Keep code blocks
+% a size smaller so the full line fits, and verify after any change to the
+% geometry with:
+%
+%   pdftotext -layout paiec_report.pdf - | grep -c <the full 64-char hash>
+%
+\AtBeginEnvironment{verbatim}{\footnotesize}
+\AtBeginEnvironment{Shaded}{\footnotesize}
